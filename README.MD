@@ -1,6 +1,6 @@
 # Beardless Bot
 
-### Full Release 2.2.0 ![Coverage badge](./resources/images/coverage.svg)
+### Full Release 2.5.5 ![Coverage badge](./resources/images/coverage.svg) ![Unit tests badge](./resources/images/tests.svg) ![Docstring coverage badge](./resources/images/docstr-coverage.svg) ![flake8 badge](./resources/images/flake8-badge.svg)
 
 A Discord bot supporting gambling (coin flips and blackjack),
 a currency system, fun facts, and more.
@@ -10,9 +10,9 @@ Originally created for use in eggsoup's Discord server.
 If you just want to add the bot to your own Discord
 server while I host it, you can simply
 [click this link](https://discord.com/api/oauth2/authorize?client_id=654133911558946837&permissions=8&scope=bot),
-then skip down to [Setup](#setup).
-If you want to run your own instance of Beardless Bot,
-follow the steps outlined directly below in [Installation](#installation).
+then skip down to [Setup](#setup). If you want to run your own instance of
+Beardless Bot, follow the steps outlined directly below in
+[Installation](#installation).
 
 
 ## Installation
@@ -20,9 +20,11 @@ follow the steps outlined directly below in [Installation](#installation).
 1. Download the repository.
 
 2. Download [Python 3](https://python.org/downloads), and then run
-`pip3 install -r resources/requirements.txt`. Beardless Bot requires Python 3.11
-or newer. If you are using python virtualenv, name your virtualenv "venv" and
-run `source venv/bin/activate` before running `pip3 install`.
+`pip3 install -r resources/requirements.txt`. If you are using python
+virtualenv, name your virtualenv "venv" and run `source venv/bin/activate`
+before running `pip3 install`. Beardless Bot requires at least Python 3.12, and
+has been tested on 3.12.0, 3.12.6, and 3.13.0. Older versions of Beardless
+Bot--specifically those before 2.5.0--can also run on 3.10 and 3.11.
 
 3. Create a file named ".env" in the same directory as Bot.py. Insert
 into it the line `DISCORDTOKEN=yourtoken`, where yourtoken is the Discord API
@@ -32,8 +34,9 @@ token you get from [here](https://discord.com/developers/applications).
 API. If you don't have [an API key](https://dev.brawlhalla.com/), those
 commands will simply be disabled; the Bot will work fine. If you do have an
 API key, place it in .env as `BRAWLKEY=yourkey`. If you want to fork this repo
-and have Brawlhalla commands covered by unit tests, you'll need to define a
-repository secret with the name BRAWLKEY. For more information, see
+and have Brawlhalla commands covered by unit tests in the CI/CD pipeline,
+you'll need to define a repository secret with the name BRAWLKEY. For more
+information, see
 [this guide](https://docs.github.com/en/actions/reference/encrypted-secrets).
 
 5. Run `python3 Bot.py` to start the bot.
@@ -45,7 +48,7 @@ repository secret with the name BRAWLKEY. For more information, see
 
 * To use Beardless Bot's event logging, create a channel named bb-log.
 
-* To use special colors, create roles named special red,
+* To use purchasable special colors, create roles named special red,
 special blue, special pink, and special orange.
 
 
@@ -61,9 +64,10 @@ compliant (except for tabs), with a column limit of 80.
 ## Testing
 
 To run Beardless Bot's suite of unit tests, do `bash unitTests.sh`. This will
-also generate a coverage badge.To run an individual test--for instance, the
-PEP8 compliance test--use the pytest command, like so:
-`pytest -v bb_test.py::test_pep8Compliance`.
+also generate a coverage badge. To run an individual test--for instance, the
+Muted role creation test--use the pytest command, like so:
+`pytest -v bb_test.py::test_createMutedRole`. To run the suite of code quality
+tests, do `pytest -vvk quality`.
 
 
 ## License

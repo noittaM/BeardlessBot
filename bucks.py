@@ -1,36 +1,30 @@
-# Beardless Bot methods that modify resources/money.csv
+"""Beardless Bot methods that modify resources/money.csv."""
 
 import csv
+import random
 from collections import OrderedDict
+from enum import Enum
 from operator import itemgetter
-from random import choice, randint
-from typing import Dict, List, Optional, Tuple, Union
+from pathlib import Path
 
 import nextcord
 
-from misc import bbEmbed, memSearch
+from misc import bb_embed, member_search
 
-
-commaWarn = (
+CommaWarn = (
 	"Beardless Bot gambling is available to Discord"
 	" users with a comma in their username. Please"
 	" remove the comma from your username, {}."
 )
 
-buckMsg = (
-	"BeardlessBucks are this bot's special currency."
-	" You can earn them by playing games. First, do"
-	" !register to get yourself started with a balance."
-)
-
-newUserMsg = (
+NewUserMsg = (
 	"You were not registered for BeardlessBucks gambling, so I have"
 	" automatically registered you. You now have 300 BeardlessBucks, {}."
 )
 
-finMsg = "Please finish your game of blackjack first, {}."
+FinMsg = "Please finish your game of blackjack first, {}."
 
-noGameMsg = (
+NoGameMsg = (
 	"You do not currently have a game of blackjack"
 	" going, {}. Type !blackjack to start one."
 )
@@ -38,12 +32,17 @@ noGameMsg = (
 
 class BlackjackGame:
 	"""
-	Blackjack game instance. New instance created for each game.
-	Instances are server-agnostic; only one game allowed per player
-	across all servers.
+	Blackjack game instance.
+
+	New instance created for each game. Instances are server-agnostic; only
+	one game allowed per player across all servers.
 
 	Attributes:
-		cardVals (tuple): Blackjack values for each card
+		AceVal (int): The high value of an Ace
+		DealerSoftGoal (int): The soft sum up to which the dealer will hit
+		FaceVal (int): The value of a face card (J Q K)
+		Goal (int): The desired score
+		CardVals (tuple[int, ...]): Blackjack values for each card
 		user (nextcord.User or Member): The user who is playing this game
 		bet (int): The number of BeardlessBucks the user is betting
 		cards (list): The list of cards the user has been dealt
@@ -54,82 +53,125 @@ class BlackjackGame:
 	Methods:
 		perfect():
 			Checks if the user has reached a Blackjack
-		startingHand(debugBlackjack=False, debugDoubleAces=False):
+		startingHand(debug_blackjack=False, debug_double_aces=False):
 			Deals the user a starting hand of 2 cards
 		deal(debug=False):
 			Deals the user a card
 		checkBust():
-			Checks if the user has gone over 21
+			Checks if the user has gone over Goal
 		stay():
 			Determines the game result after ending the game
 		cardName(card):
 			Gives the human-friendly name of a given card
+
 	"""
 
-	cardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11)
+	# TODO: Make the deck consist of 52 cards, with dealing a card popping it
+
+	AceVal = 11
+	DealerSoftGoal = 17
+	FaceVal = 10
+	Goal = 21
+	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, FaceVal, FaceVal, FaceVal, AceVal)
 
 	def __init__(
 		self,
-		user: Union[nextcord.User, nextcord.Member],
+		user: nextcord.User | nextcord.Member,
 		bet: int,
-		debug: bool = False
 	) -> None:
 		"""
-		Creates a new BlackjackGame instance. In order to simulate the dealer
-		standing on a soft 17, the dealer's sum will be incremented by a random card
-		value until reaching 17.
+		Create a new BlackjackGame instance.
+
+		In order to simulate the dealer standing on DealerSoftGoal, the
+		dealer's sum will be incremented by a random card value until
+		reaching DealerSoftGoal.
 
 		Args:
 			user (nextcord.User or Member): The user who is playing this game
 			bet (int): The number of BeardlessBucks the user is betting
-			debug (bool): Whether to fix the game for testing
-				(default is False)
+
 		"""
 		self.user = user
 		self.bet = bet
-		self.cards = []
-		self.dealerUp = randint(2, 11)
+		self.hand: list[int] = []
+		self.dealerUp = random.randint(2, BlackjackGame.AceVal)
 		self.dealerSum = self.dealerUp
-		while self.dealerSum < 17:
-			self.dealerSum += randint(1, 10)
-		self.message = self.startingHand(debug)
+		while self.dealerSum < BlackjackGame.DealerSoftGoal:
+			self.dealerSum += random.randint(1, BlackjackGame.FaceVal)
+		self.message = self.starting_hand()
 
-	def perfect(self) -> bool:
-		"""Checks if the user has reached a Blackjack."""
-		return sum(self.cards) == 21
-
-	def startingHand(
-		self, debugBlackjack: bool = False, debugDoubleAces: bool = False
-	) -> str:
+	@staticmethod
+	def card_name(card: int) -> str:
 		"""
-		Deals the user a starting hand of 2 cards.
+		Return the human-friendly name of a card based on int value.
 
 		Args:
-			debugBlackjack (bool): Used to test hitting 21
+			card (int): The card whose name should be rendered
+
+		Returns:
+			str: A human-friendly card name.
+
+		"""
+		if card == BlackjackGame.FaceVal:
+			return "a " + random.choice(
+				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
+			)
+		if card == BlackjackGame.AceVal:
+			return "an Ace"
+		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
+
+	def perfect(self) -> bool:
+		"""
+		Check if the user has reached Goal, and therefore gotten Blackjack.
+
+		In the actual game of Blackjack, getting Blackjack requires hitting
+		21 with just your first two cards; for the sake of simplicity, use
+		this method for checking if the user has reached Goal at all.
+
+		Returns:
+			bool: Whether the user has gotten Blackjack.
+
+		"""
+		return sum(self.hand) == BlackjackGame.Goal
+
+	def starting_hand(
+		self,
+		*,
+		debug_blackjack: bool = False,
+		debug_double_aces: bool = False,
+	) -> str:
+		"""
+		Deal the user a starting hand of 2 cards.
+
+		Args:
+			debug_blackjack (bool): Used to test hitting Goal
 				(default is False)
-			debugDoubleAces(bool): Used to test dealing two Aces
+			debug_double_aces (bool): Used to test dealing two Aces
 				(default is False)
 
 		Returns:
-			str: the message to show the user
+			str: The message to show the user.
+
 		"""
-		self.cards.append(choice(BlackjackGame.cardVals))
-		self.cards.append(choice(BlackjackGame.cardVals))
+		self.hand.append(random.choice(BlackjackGame.CardVals))
+		self.hand.append(random.choice(BlackjackGame.CardVals))
 		message = (
-			f"Your starting hand consists of {BlackjackGame.cardName(self.cards[0])}"
-			f" and {BlackjackGame.cardName(self.cards[1])}."
-			f" Your total is {sum(self.cards)}. "
+			"Your starting hand consists of"
+			f" {BlackjackGame.card_name(self.hand[0])}"
+			f" and {BlackjackGame.card_name(self.hand[1])}."
+			f" Your total is {sum(self.hand)}. "
 		)
-		if self.perfect() or debugBlackjack:
-			message += f"You hit 21! You win, {self.user.mention}!"
+		if (self.perfect() or debug_blackjack) and not debug_double_aces:
+			message += (
+				f"You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
+			)
 		else:
 			message += (
 				f"The dealer is showing {self.dealerUp},"
 				" with one card face down. "
 			)
-			if self.checkBust() or debugDoubleAces:
-				# Case only fires if you're dealt two aces or testing this
-				self.cards[1] = 1
+			if self.check_bust() or debug_double_aces:
+				self.hand[1] = 1
 				self.bet *= -1
 				message = (
 					"Your starting hand consists of two Aces."
@@ -141,41 +183,43 @@ class BlackjackGame:
 			)
 		return message
 
-	def deal(self, debug: bool = False) -> str:
+	def deal(self, *, debug: bool = False) -> str:
 		"""
-		Deals the user a single card.
+		Deal the user a single card.
 
 		Args:
-			debug (bool): Used to test hitting 21
-				(default is False)
+			debug (bool): Used to test hitting Goal (default is False)
 
 		Returns:
-			str: the message to show the user
+			str: The message to show the user.
+
 		"""
-		dealt = choice(BlackjackGame.cardVals)
-		self.cards.append(dealt)
+		dealt = random.choice(BlackjackGame.CardVals)
+		self.hand.append(dealt)
 		self.message = (
-			f"You were dealt {BlackjackGame.cardName(dealt)},"
-			f" bringing your total to {sum(self.cards)}. "
+			f"You were dealt {BlackjackGame.card_name(dealt)},"
+			f" bringing your total to {sum(self.hand)}. "
 		)
-		if 11 in self.cards and self.checkBust():
-			for i in range(len(self.cards)):
-				if self.cards[i] == 11:
-					self.cards[i] = 1
+		if BlackjackGame.AceVal in self.hand and self.check_bust():
+			for i, card in enumerate(self.hand):
+				if card == BlackjackGame.AceVal:
+					self.hand[i] = 1
 					self.bet *= -1
 					break
 			self.message += (
 				"To avoid busting, your Ace will be treated as a 1."
-				f" Your new total is {sum(self.cards)}. "
+				f" Your new total is {sum(self.hand)}. "
 			)
 		self.message += (
 			"Your card values are {}. The dealer is"
 			" showing {}, with one card face down."
-		).format(", ".join(str(card) for card in self.cards), self.dealerUp)
-		if self.checkBust():
+		).format(", ".join(str(card) for card in self.hand), self.dealerUp)
+		if self.check_bust():
 			self.message += f" You busted. Game over, {self.user.mention}."
 		elif self.perfect() or debug:
-			self.message += f" You hit 21! You win, {self.user.mention}!"
+			self.message += (
+				f" You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
+			)
 		else:
 			self.message += (
 				" Type !hit to deal another card to yourself, or !stay"
@@ -183,40 +227,56 @@ class BlackjackGame:
 			)
 		return self.message
 
-	def checkBust(self) -> bool:
-		"""Checks if a user has gone over 21. Returns bool."""
-		if sum(self.cards) > 21:
+	def check_bust(self) -> bool:
+		"""
+		Check if a user has gone over Goal.
+
+		If so, invert their bet to facilitate subtracting it from their total.
+
+		Returns:
+			bool: Whether the user has gone over Goal.
+
+		"""
+		if sum(self.hand) > BlackjackGame.Goal:
 			self.bet *= -1
 			return True
 		return False
 
 	def stay(self) -> int:
-		"""Ends the game. Returns int: 1 if user's bal changed, else 0."""
+		"""
+		End the game.
+
+		Returns:
+			int: 1 if user's balance changed; else, 0.
+
+		"""
 		change = 1
 		self.message = "The dealer has a total of {}."
-		if sum(self.cards) > self.dealerSum and not self.checkBust():
+		if sum(self.hand) > self.dealerSum and not self.check_bust():
+			self.message += f" You're closer to {BlackjackGame.Goal}"
 			self.message += (
-				" You're closer to 21 with a sum of {}. You win!"
-				" Your winnings have been added to your balance, {}."
+				" with a sum of {}. You win!  Your winnings"
+				" have been added to your balance, {}."
 			)
-		elif sum(self.cards) == self.dealerSum:
+		elif sum(self.hand) == self.dealerSum:
 			change = 0
 			self.message += (
 				" That ties your sum of {}. Your bet has been returned, {}."
 			)
-		elif self.dealerSum > 21:
+		elif self.dealerSum > BlackjackGame.Goal:
 			self.message += (
 				" You have a sum of {}. The dealer busts. You win!"
 				" Your winnings have been added to your balance, {}."
 			)
 		else:
+			self.message += f" That's closer to {BlackjackGame.Goal}"
 			self.message += (
-				" That's closer to 21 than your sum of {}. You lose."
-				" Your loss has been deducted from your balance, {}."
+				" than your sum of {}. You lose. Your loss"
+				" has been deducted from your balance, {}."
 			)
 			self.bet *= -1
 		self.message = self.message.format(
-			self.dealerSum, sum(self.cards), self.user.mention
+			self.dealerSum, sum(self.hand), self.user.mention,
 		)
 		if not self.bet:
 			self.message += (
@@ -224,26 +284,26 @@ class BlackjackGame:
 			)
 		return change
 
-	@staticmethod
-	def cardName(card: int) -> str:
-		"""Returns the human-friendly name of a card based on int value."""
-		if card == 10:
-			return "a " + choice(("10", "Jack", "Queen", "King"))
-		if card == 11:
-			return "an Ace"
-		if card == 8:
-			return "an 8"
-		return "a " + str(card)
+
+class MoneyFlags(Enum):
+	"""Enum for additional readability in the writeMoney method."""
+
+	NotEnoughBucks = -2
+	CommaInUsername = -1
+	BalanceUnchanged = 0
+	BalanceChanged = 1
+	Registered = 2
 
 
-def writeMoney(
-	member: Union[nextcord.User, nextcord.Member],
-	amount: Union[str, int],
+def write_money(
+	member: nextcord.User | nextcord.Member,
+	amount: str | int,
+	*,
 	writing: bool,
-	adding: bool
-) -> Tuple[int, Optional[Union[str, int]]]:
+	adding: bool,
+) -> tuple[MoneyFlags, str | int | None]:
 	"""
-	Helper method for checking or modifying a user's BeardlessBucks balance.
+	Check or modify a user's BeardlessBucks balance.
 
 	Args:
 		member (nextcord.User or Member): The target user
@@ -252,55 +312,54 @@ def writeMoney(
 		adding (bool): Whether to add to or overwrite member's balance
 
 	Returns:
-		int: the status of calling the method:
-			-1 means member's username contains a comma;
-			-2 means member doesn't have enough to bet that much;
-			0 means member's balance has not been changed;
-			1 means it has;
-			2 means this call has just registered them.
-		str: an additional report, if necessary.
+		tuple[MoneyFlags, str | int | None]: A tuple containing:
+			MoneyFlags: enum representing the result of calling the method
+			str or int or None: an additional report, if necessary.
+
 	"""
 	if "," in member.name:
-		return -1, commaWarn.format(member.mention)
-	with open("resources/money.csv") as csvfile:
-		for row in csv.reader(csvfile, delimiter=","):
+		return MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
+	with Path("resources/money.csv").open("r", encoding="UTF-8") as csv_file:
+		for row in csv.reader(csv_file, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
 					amount = -int(row[1]) if amount == "-all" else int(row[1])
-				newBank = str(int(row[1]) + amount if adding else amount)
-				if writing and row[1] != newBank:
+				new_bank: str | int = str(
+					int(row[1]) + amount if adding else amount,
+				)
+				if writing and row[1] != new_bank:
 					if int(row[1]) + amount < 0:
-						# Don't have enough to bet that much:
-						return -2, None
-					newLine = ",".join((row[0], newBank, str(member)))
-					result = 1
+						return MoneyFlags.NotEnoughBucks, None
+					new_line = ",".join((row[0], str(new_bank), str(member)))
+					result = MoneyFlags.BalanceChanged
 				else:
 					# No change in balance. Rewrites lines anyway, to
 					# update stringified version of member
-					newLine = ",".join((row[0], row[1], str(member)))
-					newBank = int(row[1])
-					result = 0
-				with open("resources/money.csv", "r") as oldMoney:
-					newMoney = (
-						"".join([i for i in oldMoney])
-						.replace(",".join(row), newLine)
-					)
-				with open("resources/money.csv", "w") as money:
-					money.writelines(newMoney)
-				return result, newBank
+					new_line = ",".join((row[0], row[1], str(member)))
+					new_bank = int(row[1])
+					result = MoneyFlags.BalanceUnchanged
+				with Path("resources/money.csv").open(
+					"r", encoding="UTF-8",
+				) as f:
+					money = "".join(list(f)).replace(",".join(row), new_line)
+				with Path("resources/money.csv").open(
+					"w", encoding="UTF-8",
+				) as f:
+					f.writelines(money)
+				return result, new_bank
 
-	with open("resources/money.csv", "a") as money:
-		money.write(f"\r\n{member.id},300,{member}")
+	with Path("resources/money.csv").open("a", encoding="UTF-8") as f:
+		f.write(f"\r\n{member.id},300,{member}")
 	return (
-		2,
+		MoneyFlags.Registered,
 		(
 			"Successfully registered. You have 300"
 			f" BeardlessBucks, {member.mention}."
-		)
+		),
 	)
 
 
-def register(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
+def register(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 	"""
 	Register a new user for BeardlessBucks.
 
@@ -309,143 +368,150 @@ def register(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
 
 	Returns:
 		nextcord.Embed: the report of the target's registration.
+
 	"""
-	result, bonus = writeMoney(target, 300, False, False)
-	if result in (-1, 2):
-		report = bonus
-	else:
-		report = (
-			"You are already in the system! Hooray! You"
-			f" have {bonus} BeardlessBucks, {target.mention}."
-		)
-	return bbEmbed("BeardlessBucks Registration", report)
+	result, bonus = write_money(target, 300, writing=False, adding=False)
+	report = bonus if result in {
+		MoneyFlags.CommaInUsername, MoneyFlags.Registered,
+	} else (
+		"You are already in the system! Hooray! You"
+		f" have {bonus} BeardlessBucks, {target.mention}."
+	)
+	assert isinstance(report, str)
+	return bb_embed("BeardlessBucks Registration", report)
 
 
 def balance(
-	target: Union[nextcord.User, nextcord.Member, str],
-	msg: nextcord.Message
+	target: nextcord.User | nextcord.Member | str,
+	msg: nextcord.Message,
 ) -> nextcord.Embed:
 	"""
-	Checks a user's BeardlessBucks balance.
+	Check a user's BeardlessBucks balance.
 
 	Args:
-		target (nextcord.User or Member): The user whose balance is to be checked
+		target (nextcord.User or Member or str): The user whose balance is
+			to be checked
 		msg (nextcord.Message): The message sent that called this command
 
 	Returns:
 		nextcord.Embed: the report of the target's balance.
+
 	"""
 	report = (
 		"Invalid user! Please @ a user when you do !balance"
 		" (or enter their username), or do !balance without a"
 		f" target to see your own balance, {msg.author.mention}."
 	)
-	if not (
-		isinstance(target, nextcord.User)
-		or isinstance(target, nextcord.Member)
-	):
-		target = memSearch(msg, target)
-	if target:
-		result, bonus = writeMoney(target, 300, False, False)
-		if result == 0:
-			report = f"{target.mention}'s balance is {bonus} BeardlessBucks."
+	bal_target = (
+		member_search(msg, target) if isinstance(target, str) else target
+	)
+	if bal_target and not isinstance(bal_target, str):
+		result, bonus = write_money(
+			bal_target, 300, writing=False, adding=False,
+		)
+		if result == MoneyFlags.BalanceUnchanged:
+			report = (
+				f"{bal_target.mention}'s balance is {bonus} BeardlessBucks."
+			)
 		else:
-			report = bonus if result in (-1, 2) else "Error!"
-	return bbEmbed("BeardlessBucks Balance", report)
+			report = str(bonus) if result in {
+				MoneyFlags.CommaInUsername, MoneyFlags.Registered,
+			} else "Error!"
+	return bb_embed("BeardlessBucks Balance", report)
 
 
-def reset(target: Union[nextcord.User, nextcord.Member]) -> nextcord.Embed:
+def reset(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 	"""
-	Resets a user's Beardless balance to 200.
+	Reset a user's Beardless balance to 200.
 
 	Args:
 		target (nextcord.User or Member): The user to reset
 
 	Returns:
 		nextcord.Embed: the report of the target's balance reset.
+
 	"""
-	result, bonus = writeMoney(target, 200, True, False)
-	if result in (-1, 2):
-		report = bonus
-	else:
-		report = (
-			"You have been reset to 200"
-			f" BeardlessBucks, {target.mention}."
-		)
-	return bbEmbed("BeardlessBucks Reset", report)
+	result, bonus = write_money(target, 200, writing=True, adding=False)
+	report = bonus if result in {
+		MoneyFlags.CommaInUsername, MoneyFlags.Registered,
+	} else f"You have been reset to 200 BeardlessBucks, {target.mention}."
+	assert isinstance(report, str)
+	return bb_embed("BeardlessBucks Reset", report)
 
 
 def leaderboard(
-	target: Union[nextcord.User, nextcord.Member, str] = None,
-	msg: nextcord.Message = None
+	target: nextcord.User | nextcord.Member | str | None = None,
+	msg: nextcord.Message | None = None,
 ) -> nextcord.Embed:
 	"""
-	Finds the top min(len(money.csv), 10) users
-	by balance in money.csv.
+	Find the top min(len(money.csv), 10) users by balance in money.csv.
+
 	Runtime = |money.csv| + runtime of sorted(money.csv) + 10
-	= O(n) + O(nlogn) + 10 = O(nlogn).
+	= O(n) + O(nlog(n)) + 10 = O(nlog(n)).
 
 	Args:
-		target (nextcord.User or Member): The user calling leaderboard()
-			(default is None)
+		target (nextcord.User or Member or str or None): The user invoking
+			leaderboard() (default is None)
+		msg (nextcord.Message or None): the message invoking
+			leaderboard(); always present when invoking in server,
+			sometimes absent in testing (default is None)
 
 	Returns:
 		nextcord.Embed: a summary of the richest users by balance.
 			If target is somewhere on the leaderboard, also
 			reports target's position and balance.
+
 	"""
-	lbDict: Dict[str, int] = {}
-	emb = bbEmbed("BeardlessBucks Leaderboard")
-	if (target and msg and not (
-		isinstance(target, nextcord.User)
-		or isinstance(target, nextcord.Member)
-	)):
-		target = memSearch(msg, target)
-	if target:
-		writeMoney(target, 300, False, False)
-	with open("resources/money.csv") as csvfile:
-		for row in csv.reader(csvfile, delimiter=","):
-			lbDict[row[2]] = int(row[1])
+	emb = bb_embed("BeardlessBucks Leaderboard")
+	if (msg and isinstance(target, str)):
+		target = member_search(msg, target)
+	if target and isinstance(target, nextcord.User | nextcord.Member):
+		write_money(target, 300, writing=False, adding=False)
+	with Path("resources/money.csv").open("r", encoding="UTF-8") as csv_file:
+		lb_dict = {
+			row[2]: int(row[1]) for row in csv.reader(csv_file, delimiter=",")
+		}
 	# Sort by value for each key in lbDict, which is BeardlessBucks balance
-	sortedDict = OrderedDict(sorted(lbDict.items(), key=itemgetter(1)))
+	sorted_dict = OrderedDict(sorted(lb_dict.items(), key=itemgetter(1)))
+	pos = target_balance = None
 	if target:
-		users = list(sortedDict.keys())
+		users = list(sorted_dict.keys())
 		try:
 			pos = len(users) - users.index(str(target))
-			targetBal = sortedDict[str(target)]
 		except ValueError:
 			pos = None
-	for i in range(min(len(sortedDict), 10)):
-		head, body = sortedDict.popitem()
-		lastEntry = (i != min(len(sortedDict), 10) - 1)
+		else:
+			target_balance = sorted_dict[str(target)]
+	for i in range(min(len(sorted_dict), 10)):
+		head, body = sorted_dict.popitem()
+		last_entry: bool = (
+			i != min(len(sorted_dict), 10) - 1
+		)
 		emb.add_field(
-			name=f"{i + 1}. {head[:-5]}", value=body, inline=lastEntry
+			name=f"{i + 1}. {head.split("#")[0]}",
+			value=body,
+			inline=last_entry,
 		)
 	if target and pos:
+		assert not isinstance(target, str)
 		emb.add_field(name=f"{target.name}'s position:", value=pos)
-		emb.add_field(name=f"{target.name}'s balance:", value=targetBal)
+		emb.add_field(name=f"{target.name}'s balance:", value=target_balance)
 	return emb
 
 
-def flip(
-	author: Union[nextcord.User, nextcord.Member],
-	bet: str,
-	debug: bool = False
-) -> str:
+def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 	"""
-	Gambles a certain number of BeardlessBucks on a coin toss.
+	Gamble a certain number of BeardlessBucks on a coin toss.
 
 	Args:
 		author (nextcord.User or Member): The user who is gambling
 		bet (str): The amount author is wagering
-		debug (bool): Whether to fix the outcome of the flip.
-			Only used for testing in bb_test.py.
-			(default is False)
 
 	Returns:
 		str: A report of the outcome and how author's balance changed.
+
 	"""
-	heads = randint(0, 1)
+	heads = random.randint(0, 1)
 	report = (
 		"Invalid bet. Please choose a number greater than or equal"
 		" to 0, or enter \"all\" to bet your whole balance, {}."
@@ -458,36 +524,32 @@ def flip(
 			bet = int(bet)
 		except ValueError:
 			bet = -1
-	if (isinstance(bet, str) and "all" in bet) or bet >= 0:
-		result, bank = writeMoney(author, 300, False, False)
-		if result == 2:
-			report = (
-				"You were not registered for BeardlessBucks gambling, so"
-				" I registered you. You now have 300 BeardlessBucks, {}."
-			)
-		elif result == -1:
+	if (
+		(isinstance(bet, str) and "all" in bet)
+		or (isinstance(bet, int) and bet >= 0)
+	):
+		result, bank = write_money(author, 300, writing=False, adding=False)
+		if result == MoneyFlags.Registered:
+			report = NewUserMsg
+		elif result == MoneyFlags.CommaInUsername:
+			assert isinstance(bank, str)
 			report = bank
-		elif isinstance(bet, int) and bet > bank:
+		elif isinstance(bet, int) and isinstance(bank, int) and bet > bank:
 			report = (
 				"You do not have enough BeardlessBucks to bet that much, {}!"
 			)
 		else:
-			if isinstance(bet, int) and (debug or not heads):
+			if isinstance(bet, int) and not heads:
 				bet *= -1
-			result, bonus = writeMoney(author, bet, True, True)
-			if result == 2:
-				report = newUserMsg
-			elif heads or debug:
-				report = (
-					"Heads! You win! Your winnings have"
-					" been added to your balance, {}."
-				)
-			else:
-				report = (
-					"Tails! You lose! Your losses have been"
-					" deducted from your balance, {}."
-				)
-			if result == 0:
+			result = write_money(author, bet, writing=True, adding=True)[0]
+			report = (
+				"Heads! You win! Your winnings have"
+				" been added to your balance, {}."
+			) if heads else (
+				"Tails! You lose! Your losses have been"
+				" deducted from your balance, {}."
+			)
+			if result == MoneyFlags.BalanceUnchanged:
 				report += (
 					" Or, they would have been, if"
 					" you had actually bet anything."
@@ -496,10 +558,10 @@ def flip(
 
 
 def blackjack(
-	author: Union[nextcord.User, nextcord.Member], bet: str
-) -> Tuple[str, Union[BlackjackGame, None]]:
+	author: nextcord.User | nextcord.Member, bet: str | int,
+) -> tuple[str, BlackjackGame | None]:
 	"""
-	Gambles a certain number of BeardlessBucks on blackjack.
+	Gamble a certain number of BeardlessBucks on blackjack.
 
 	Args:
 		author (nextcord.User or Member): The user who is gambling
@@ -507,9 +569,10 @@ def blackjack(
 
 	Returns:
 		str: A report of the outcome and how author's balance changed.
-		bucks.Instance: If there is still a game to play, returns
-			the object representing the game of blackjack
-			author is playing.
+		BlackjackGame or None: If there is still a game to play,
+			returns the object representing the game of blackjack
+			author is playing. Else, None.
+
 	"""
 	game = None
 	report = (
@@ -521,30 +584,46 @@ def blackjack(
 			bet = int(bet)
 		except ValueError:
 			bet = -1
-	if (isinstance(bet, str) and bet == "all") or (bet >= 0):
-		result, bank = writeMoney(author, 300, False, False)
-		if result == 2:
-			report = (
-				"You were not registered for BeardlessBucks gambling, so"
-				" I registered you. You now have 300 BeardlessBucks, {}."
-			)
-		elif result == -1:
+	if (
+		(isinstance(bet, str) and bet == "all")
+		or (isinstance(bet, int) and bet >= 0)
+	):
+		result, bank = write_money(author, 300, writing=False, adding=False)
+		if result == MoneyFlags.Registered:
+			report = NewUserMsg
+		elif result == MoneyFlags.CommaInUsername:
+			assert isinstance(bank, str)
 			report = bank
-		elif isinstance(bet, int) and bet > bank:
+		elif isinstance(bet, int) and isinstance(bank, int) and bet > bank:
 			report = (
 				"You do not have enough BeardlessBucks to bet that much, {}!"
 			)
 		else:
 			if bet == "all":
+				assert bank is not None
 				bet = bank
-			game = BlackjackGame(author, bet)
+			game = BlackjackGame(author, int(bet))
 			report = game.message
 			if game.perfect():
-				writeMoney(author, bet, True, True)
+				write_money(author, bet, writing=True, adding=True)
 				game = None
 	return report.format(author.mention), game
 
 
-def activeGame(games: List[BlackjackGame], author: nextcord.User) -> bool:
-	"""Checks if a user has an active game of Blackjack."""
-	return any(author == game.user for game in games)
+def active_game(
+	games: list[BlackjackGame], author: nextcord.User | nextcord.Member,
+) -> BlackjackGame | None:
+	"""
+	Check if a user has an active game of Blackjack.
+
+	Args:
+		games (list[BlackjackGame]): list of active Blackjack games
+		author (nextcord.User or Member): The user who is gambling
+
+	Returns:
+		BlackjackGame or None: The user's current Blackjack game,
+			if one exists. Else, None.
+
+	"""
+	game = [g for g in games if g.user == author]
+	return game[0] if game else None

@@ -6,5 +6,12 @@ testResults.md
 coverage.xml
 htmlcov/*
 resources/logs/*
+env/
 venv/
-*.kdev4*
+*.kdev4
+junit.xml
+.mypy_cache/*
+.pytest_cache/*
+include/*
+bandit.txt
+.ruff_cache

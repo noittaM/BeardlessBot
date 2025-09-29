@@ -1,232 +1,230 @@
-# Beadless Bot event logging methods
+"""Beadless Bot event logging methods."""
 
-from typing import List, Optional
+from collections.abc import Sequence
+from typing import Final
 
 import nextcord
 
-from misc import bbEmbed, fetchAvatar, prof, truncTime
-
+from misc import ProfUrl, bb_embed, content_check, fetch_avatar, truncate_time
 
 # TODO: Implement log thread locked/unlocked
+# https://github.com/LevBernstein/BeardlessBot/issues/45
 
-msgMaxLength = "**Message length exceeds 1024 characters.**"
-
-
-def contCheck(msg: nextcord.Message) -> str:
-	if msg.content:
-		if len(msg.content) > 1024:
-			return msgMaxLength
-		return msg.content
-	return "**Embed**"
+MaxPurgedMsgs: Final[int] = 99
 
 
-def logDeleteMsg(msg: nextcord.Message) -> nextcord.Embed:
-	return bbEmbed(
-		"",
-		f"**Deleted message sent by {msg.author.mention} in "
-		f"**{msg.channel.mention}\n{contCheck(msg)}",
-		0xFF0000,
-		True
-	).set_author(name=msg.author, icon_url=fetchAvatar(msg.author))
+def log_delete_msg(message: nextcord.Message) -> nextcord.Embed:
+	assert hasattr(message.channel, "mention")
+	prefix = (
+		f"**Deleted message sent by {message.author.mention} in "
+		f"**{message.channel.mention}\n"
+	)
+	return bb_embed(
+		value=f"{prefix}{content_check(message, len(prefix))}",
+		col=0xFF0000,
+		show_time=True,
+	).set_author(name=message.author, icon_url=fetch_avatar(message.author))
 
 
-def logPurge(
-	msg: nextcord.Message, msgList: List[nextcord.Message]
+def log_purge(
+	msg: nextcord.Message, messages: Sequence[nextcord.Message],
 ) -> nextcord.Embed:
 
-	def purgeReport(msgList: List[nextcord.Message]) -> str:
-		return "99+" if len(msgList) > 99 else str(len(msgList) - 1)
+	def purge_report(msg_list: Sequence[nextcord.Message]) -> str:
+		return (
+			f"{MaxPurgedMsgs}+"
+			if len(msg_list) > MaxPurgedMsgs
+			else str(len(msg_list) - 1)
+		)
 
-	return bbEmbed(
+	assert hasattr(msg.channel, "mention")
+	return bb_embed(
 		"",
-		f"Purged {purgeReport(msgList)} messages in {msg.channel.mention}.",
+		f"Purged {purge_report(messages)} messages in {msg.channel.mention}.",
 		0xFF0000,
-		True
-	).set_author(name="Purge!", icon_url=prof)
+		show_time=True,
+	).set_author(name="Purge!", icon_url=ProfUrl)
 
 
-def logEditMsg(
-	before: nextcord.Message, after: nextcord.Message
+def log_edit_msg(
+	before: nextcord.Message, after: nextcord.Message,
 ) -> nextcord.Embed:
-	return (
-		bbEmbed(
-			"",
-			f"Messaged edited by {before.author.mention}"
-			f" in {before.channel.mention}.",
-			0xFFFF00,
-			True
-		)
-		.set_author(name=before.author, icon_url=fetchAvatar(before.author))
-		.add_field(name="Before:", value=contCheck(before), inline=False)
-		.add_field(
-			name="After:",
-			value=f"{contCheck(after)}\n[Jump to Message]({after.jump_url})",
-			inline=False
-		)
+	assert hasattr(before.channel, "mention")
+	jump_link = f"\n[Jump to Message]({after.jump_url})"
+	return bb_embed(
+		"",
+		f"Messaged edited by {before.author.mention}"
+		f" in {before.channel.mention}.",
+		0xFFFF00,
+		show_time=True,
+	).set_author(
+		name=before.author, icon_url=fetch_avatar(before.author),
+	).add_field(
+		name="Before:", value=content_check(before, 7), inline=False,
+	).add_field(
+		name="After:",
+		value=f"{content_check(after, len(jump_link))}{jump_link}",
+		inline=False,
 	)
 
 
-def logClearReacts(
-	msg: nextcord.Message, reactions: List[nextcord.Reaction]
+def log_clear_reacts(
+	message: nextcord.Message, reactions: list[nextcord.Reaction],
 ) -> nextcord.Embed:
-	return (
-		bbEmbed(
-			"",
-			f"Reactions cleared from message sent by {msg.author.mention}"
-			f" in {msg.channel.mention}.",
-			0xFF0000,
-			True
-		)
-		.set_author(name=msg.author, icon_url=fetchAvatar(msg.author))
-		.add_field(
-			name="Message content:",
-			value=contCheck(msg) + f"\n[Jump to Message]({msg.jump_url})"
-		)
-		.add_field(
-			name="Reactions:", value=", ".join(str(r) for r in reactions)
-		)
+	assert hasattr(message.channel, "mention")
+	jump_link = f"\n[Jump to Message]({message.jump_url})"
+	return bb_embed(
+		"",
+		f"Reactions cleared from message sent by {message.author.mention}"
+		f" in {message.channel.mention}.",
+		0xFF0000,
+		show_time=True,
+	).set_author(
+		name=message.author, icon_url=fetch_avatar(message.author),
+	).add_field(
+		name="Message content:",
+		value=content_check(message, len(jump_link)) + jump_link,
+	).add_field(
+		name="Reactions:", value=", ".join(str(r) for r in reactions),
 	)
 
 
-def logDeleteChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
-	return bbEmbed(
-		"", f'Channel "{channel.name}" deleted.', 0xFF0000, True
-	).set_author(name="Channel deleted", icon_url=prof)
+def log_delete_channel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Channel \"{channel.name}\" deleted.", 0xFF0000, show_time=True,
+	).set_author(name="Channel deleted", icon_url=ProfUrl)
 
 
-def logCreateChannel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
-	return bbEmbed(
-		"", f'Channel "{channel.name}" created.', 0x00FF00, True
-	).set_author(name="Channel created", icon_url=prof)
+def log_create_channel(channel: nextcord.abc.GuildChannel) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Channel \"{channel.name}\" created.", 0x00FF00, show_time=True,
+	).set_author(name="Channel created", icon_url=ProfUrl)
 
 
-def logMemberJoin(member: nextcord.Member) -> nextcord.Embed:
-	return bbEmbed(
+def log_member_join(member: nextcord.Member) -> nextcord.Embed:
+	return bb_embed(
 		"",
 		f"Member {member.mention} joined\nAccount registered"
-		f" on {truncTime(member)}\nID: {member.id}",
+		f" on {truncate_time(member)}\nID: {member.id}",
 		0x0000FF,
-		True
+		show_time=True,
 	).set_author(
-		name=f"{member} joined the server", icon_url=fetchAvatar(member)
+		name=f"{member} joined the server", icon_url=fetch_avatar(member),
 	)
 
 
-def logMemberRemove(member: nextcord.Member) -> nextcord.Embed:
-	emb = bbEmbed(
-		"", f"Member {member.mention} left\nID: {member.id}", 0xFF0000, True
-	).set_author(name=f"{member} left the server", icon_url=fetchAvatar(member))
+def log_member_remove(member: nextcord.Member) -> nextcord.Embed:
+	emb = bb_embed(
+		value=f"Member {member.mention} left\nID: {member.id}",
+		col=0xFF0000,
+		show_time=True,
+	).set_author(
+		name=f"{member} left the server", icon_url=fetch_avatar(member),
+	)
 	if len(member.roles) > 1:
 		emb.add_field(
 			name="Roles:",
-			value=", ".join(role.mention for role in member.roles[:0:-1])
+			value=", ".join(role.mention for role in member.roles[:0:-1]),
 		)
 	return emb
 
 
-def logMemberNickChange(
-	before: nextcord.Member, after: nextcord.Member
+def log_member_nick_change(
+	before: nextcord.Member, after: nextcord.Member,
 ) -> nextcord.Embed:
-	return (
-		bbEmbed("", f"Nickname of {after.mention} changed.", 0xFFFF00, True)
-		.set_author(name=after, icon_url=fetchAvatar(after))
-		.add_field(name="Before:", value=before.nick, inline=False)
-		.add_field(name="After:", value=after.nick, inline=False)
-	)
+	return bb_embed(
+		"", f"Nickname of {after.mention} changed.", 0xFFFF00, show_time=True,
+	).set_author(
+		name=after, icon_url=fetch_avatar(after),
+	).add_field(
+		name="Before:", value=before.nick, inline=False,
+	).add_field(name="After:", value=after.nick, inline=False)
 
 
-def logMemberRolesChange(
-	before: nextcord.Member, after: nextcord.Member
+def log_member_roles_change(
+	before: nextcord.Member, after: nextcord.Member,
 ) -> nextcord.Embed:
-	if len(before.roles) > len(after.roles):
-		roles, others = before.roles, after.roles
-		verb, color = "removed from", 0xFF0000
-	else:
-		roles, others = after.roles, before.roles
-		verb, color = "added to", 0x00FF00
-	for role in roles:
-		if role not in others:
-			newRole = role
-			break
-	return bbEmbed(
-		"", f"Role {newRole.mention} {verb} {after.mention}.", color, True
-	).set_author(name=after, icon_url=fetchAvatar(after))
-
-
-def logBan(member: nextcord.Member) -> nextcord.Embed:
-	return (
-		bbEmbed(
-			"",
-			f"Member {member.mention} banned\n{member.name}",
-			0xFF0000,
-			True
-		)
-		.set_author(name="Member banned", icon_url=fetchAvatar(member))
-		.set_thumbnail(url=fetchAvatar(member))
+	verb, color = (
+		("removed from", 0xFF0000)
+		if len(before.roles) > len(after.roles)
+		else ("added to", 0x00FF00)
 	)
+	role = set(after.roles).symmetric_difference(set(before.roles)).pop()
+	return bb_embed(
+		value=f"Role {role.mention} {verb} {after.mention}.",
+		col=color,
+		show_time=True,
+	).set_author(name=after, icon_url=fetch_avatar(after))
 
 
-def logUnban(member: nextcord.Member) -> nextcord.Embed:
-	return (
-		bbEmbed(
-			"",
-			f"Member {member.mention} unbanned\n{member.name}",
-			0x00FF00,
-			True
-		)
-		.set_author(name="Member unbanned", icon_url=fetchAvatar(member))
-		.set_thumbnail(url=fetchAvatar(member))
-	)
+def log_ban(member: nextcord.Member) -> nextcord.Embed:
+	return bb_embed(
+		value=f"Member {member.mention} banned\n{member.name}",
+		col=0xFF0000,
+		show_time=True,
+	).set_author(
+		name="Member banned", icon_url=fetch_avatar(member),
+	).set_thumbnail(url=fetch_avatar(member))
 
 
-def logMute(
-	member: nextcord.Member,
-	message: nextcord.Message,
-	duration: Optional[str],
-	mString: Optional[str],
-	mTime: Optional[float]
+def log_unban(member: nextcord.Member) -> nextcord.Embed:
+	return bb_embed(
+		value=f"Member {member.mention} unbanned\n{member.name}",
+		col=0x00FF00,
+		show_time=True,
+	).set_author(
+		name="Member unbanned", icon_url=fetch_avatar(member),
+	).set_thumbnail(url=fetch_avatar(member))
+
+
+def log_mute(
+	member: nextcord.Member, message: nextcord.Message, duration: str | None,
 ) -> nextcord.Embed:
-	mid = f" for {duration} {mString}" if mTime else ""
-	return bbEmbed(
+	assert hasattr(message.channel, "mention")
+	mid = f" for {duration}" if duration else ""
+	return bb_embed(
 		"Beardless Bot Mute",
 		f"Muted {member.mention}{mid} in {message.channel.mention}.",
 		0xFF0000,
-		True
-	).set_author(name=message.author, icon_url=fetchAvatar(message.author))
+		show_time=True,
+	).set_author(name=message.author, icon_url=fetch_avatar(message.author))
 
 
-def logUnmute(
-	member: nextcord.Member, author: nextcord.Member
+def log_unmute(
+	member: nextcord.Member, author: nextcord.Member,
 ) -> nextcord.Embed:
-	return bbEmbed(
-		"Beardless Bot Mute", f"Unmuted {member.mention}.", 0x00FF00, True
-	).set_author(name=author, icon_url=fetchAvatar(author))
+	return bb_embed(
+		"Beardless Bot Mute",
+		f"Unmuted {member.mention}.",
+		0x00FF00,
+		show_time=True,
+	).set_author(name=author, icon_url=fetch_avatar(author))
 
 
-def logCreateThread(thread: nextcord.Thread) -> nextcord.Embed:
-	emb = bbEmbed(
+def log_create_thread(thread: nextcord.Thread) -> nextcord.Embed:
+	assert isinstance(thread.parent, nextcord.abc.GuildChannel)
+	return bb_embed(
 		"",
 		f"Thread \"{thread.name}\" created in"
 		f" parent channel {thread.parent.mention}.",
 		0x00FF00,
-		True
-	).set_author(name="Thread created", icon_url=prof)
-	return emb
+		show_time=True,
+	).set_author(name="Thread created", icon_url=ProfUrl)
 
 
-def logDeleteThread(thread: nextcord.Thread) -> nextcord.Embed:
-	return bbEmbed(
-		"", f"Thread \"{thread.name}\" deleted.", 0xFF0000, True
-	).set_author(name="Thread deleted", icon_url=prof)
+def log_delete_thread(thread: nextcord.Thread) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Thread \"{thread.name}\" deleted.", 0xFF0000, show_time=True,
+	).set_author(name="Thread deleted", icon_url=ProfUrl)
 
 
-def logThreadArchived(thread: nextcord.Thread) -> nextcord.Embed:
-	return bbEmbed(
-		"", f"Thread \"{thread.name}\" archived.", 0xFFFF00, True
-	).set_author(name="Thread archived", icon_url=prof)
+def log_thread_archived(thread: nextcord.Thread) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Thread \"{thread.name}\" archived.", 0xFFFF00, show_time=True,
+	).set_author(name="Thread archived", icon_url=ProfUrl)
 
 
-def logThreadUnarchived(thread: nextcord.Thread) -> nextcord.Embed:
-	return bbEmbed(
-		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, True
-	).set_author(name="Thread unarchived", icon_url=prof)
+def log_thread_unarchived(thread: nextcord.Thread) -> nextcord.Embed:
+	return bb_embed(
+		"", f"Thread \"{thread.name}\" unarchived.", 0xFFFF00, show_time=True,
+	).set_author(name="Thread unarchived", icon_url=ProfUrl)
