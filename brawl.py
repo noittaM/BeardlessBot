@@ -74,10 +74,10 @@ Regions = (
 def get_brawl_data() -> dict[
 	str, dict[str, list[dict[str, str | dict[str, str | dict[str, str]]]]],
 ]:
-	r = httpx.get("https://brawlhalla.com/legends", timeout=10)
+	r = httpx.get("https://www.brawlhalla.com/legends", timeout=10)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	brawl_dict = json.loads(
-		json.loads(soup.findAll("script")[3].contents[0])["body"],
+		json.loads(soup.find_all("script")[3].contents[0])["body"],
 	)["data"]
 	assert isinstance(brawl_dict, dict)
 	return brawl_dict
@@ -190,8 +190,6 @@ async def pull_legends(brawl_key: str) -> None:
 
 
 def get_legend_picture(legend_name: str) -> str:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	if legend_name == "redraptor":
 		legend_name = "red-raptor"
 	legend = [i for i in Data["legends"]["nodes"] if i["slug"] == legend_name]
@@ -256,20 +254,17 @@ async def legend_info(brawl_key: str, legend_name: str) -> Embed | None:
 def get_top_legend(
 	legends: list[dict[str, str | int]],
 ) -> tuple[str, int] | None:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	top_legend = None
 	for legend in legends:
-		if not top_legend or top_legend[1] < legend["rating"]:
+		assert isinstance(legend["rating"], int)
+		rating: int = legend["rating"]
+		if not top_legend or top_legend[1] < rating:
 			assert isinstance(legend["legend_name_key"], str)
-			assert isinstance(legend["rating"], int)
-			top_legend = legend["legend_name_key"], legend["rating"]
+			top_legend = legend["legend_name_key"], rating
 	return top_legend
 
 
 def get_ones_rank(emb: Embed, r: dict[str, Any]) -> Embed:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	emb_val = (
 		f"**{r["tier"]}** ({r["rating"]}/{r["peak_rating"]} Peak)\n{r["wins"]}"
 		f" W / {r["games"] - r["wins"]} L / {brawl_win_rate(r)}% winrate"
@@ -288,9 +283,6 @@ def get_ones_rank(emb: Embed, r: dict[str, Any]) -> Embed:
 
 
 def get_twos_rank(emb: Embed, r: dict[str, Any]) -> Embed:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
-	# Should be called after getOnesRank, not before
 	peak_team = None
 	for team in r["2v2"]:
 		# Find highest-Elo 2s pairing
@@ -336,11 +328,11 @@ async def get_rank(target: Member | User, brawl_key: str) -> Embed:
 			"Beardless Bot Brawlhalla Rank",
 			"You haven't played ranked yet this season.",
 		).set_footer(text=f"Brawl ID {brawl_id}").set_author(
-			name=target, icon_url=fetch_avatar(target),
+			name=target.name, icon_url=fetch_avatar(target),
 		)
 	emb = bb_embed(f"{r["name"]}, {r["region"]}").set_footer(
 		text=f"Brawl ID {brawl_id}",
-	).set_author(name=target, icon_url=fetch_avatar(target))
+	).set_author(name=target.name, icon_url=fetch_avatar(target))
 	if "games" in r and r["games"] != 0:
 		emb = get_ones_rank(emb, r)
 	if "2v2" in r and len(r["2v2"]) != 0:
@@ -349,8 +341,6 @@ async def get_rank(target: Member | User, brawl_key: str) -> Embed:
 
 
 def get_top_dps(legend: dict[str, str | int]) -> tuple[str, float]:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	assert isinstance(legend["matchtime"], int)
 	assert isinstance(legend["legend_name_key"], str)
 	return (
@@ -360,8 +350,6 @@ def get_top_dps(legend: dict[str, str | int]) -> tuple[str, float]:
 
 
 def get_top_ttk(legend: dict[str, str | int]) -> tuple[str, float]:
-	# TODO: unit test
-	# https://github.com/LevBernstein/BeardlessBot/issues/47
 	assert isinstance(legend["kos"], int)
 	assert isinstance(legend["matchtime"], int)
 	assert isinstance(legend["legend_name_key"], str)
@@ -426,7 +414,7 @@ async def get_stats(target: Member | User, brawl_key: str) -> Embed:
 		text=f"Brawl ID {brawl_id}",
 	).add_field(name="Name", value=r["name"]).add_field(
 		name="Overall W/L", value=win_loss,
-	).set_author(name=target, icon_url=fetch_avatar(target))
+	).set_author(name=target.name, icon_url=fetch_avatar(target))
 	if "legends" in r:
 		most_used, top_winrate, top_dps, lowest_ttk = get_top_legend_stats(
 			r["legends"],
@@ -514,3 +502,5 @@ def brawl_commands() -> Embed:
 # https://github.com/LevBernstein/BeardlessBot/issues/15
 # https://github.com/LevBernstein/BeardlessBot/issues/17
 # See: https://github.com/BrawlDB/gerard3/blob/master/src/utils/glory.js
+
+# TODO: brawlstats command for specific legend

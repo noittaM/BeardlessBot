@@ -20,6 +20,7 @@ from nextcord.utils import get
 logger = logging.getLogger(__name__)
 
 MaxMsgLength: Final[int] = 1024
+MaxEmbedFields: Final[int] = 25
 Ok: Final[int] = 200
 BadRequest: Final[int] = 404
 BbColor: Final[int] = 0xFFF994
@@ -375,10 +376,10 @@ def get_frog_list() -> list[str]:
 	)
 	soup = BeautifulSoup(r.content.decode("utf-8"), "html.parser")
 	try:
-		j = loads(soup.findAll("script")[-1].text)["payload"]
+		j = loads(soup.find_all("script")[-1].text)["payload"]
 	except KeyError:
 		j = loads(
-			soup.findAll("script")[-2].text.replace("\\", "\\\\"),
+			soup.find_all("script")[-2].text.replace("\\", "\\\\"),
 		)["payload"]
 	return [i["name"] for i in j["tree"]["items"]]
 
@@ -413,13 +414,12 @@ async def get_animal(animal_type: str) -> str:
 	elif animal_type == "fox":
 		url = await fetch_animal("https://randomfox.ca/floof/", "image")
 
-	elif animal_type in {"duck", "lizard"}:
+	elif animal_type == "duck":
+		return "https://random-d.uk/api/randomimg"
+
+	elif animal_type == "lizard":
 		url = await fetch_animal(
-			(
-				"https://random-d.uk/api/quack"
-				if animal_type == "duck"
-				else "https://nekos.life/api/v2/img/lizard"
-			), "url",
+			"https://nekos.life/api/v2/img/lizard", "url",
 		)
 
 	else:
@@ -448,6 +448,8 @@ async def define(word: str) -> nextcord.Embed:
 		for entry in j:
 			for meaning in entry["meanings"]:
 				for definition in meaning["definitions"]:
+					if i >= MaxEmbedFields:
+						break
 					i += 1
 					emb.add_field(
 						name=f"Definition {i}:",
@@ -565,7 +567,7 @@ def info(
 		emb = bb_embed(
 			value=activity, col=member.color,
 		).set_author(
-			name=member, icon_url=fetch_avatar(member),
+			name=member.name, icon_url=fetch_avatar(member),
 		).set_thumbnail(
 			url=fetch_avatar(member),
 		).add_field(
@@ -604,7 +606,7 @@ def avatar(
 		return bb_embed(
 			col=member.color,
 		).set_image(url=fetch_avatar(member)).set_author(
-			name=member, icon_url=fetch_avatar(member),
+			name=member.name, icon_url=fetch_avatar(member),
 		)
 	return InvalidTargetEmbed
 
@@ -649,12 +651,12 @@ class BbHelpCommand(commands.HelpCommand):
 	@override
 	async def send_bot_help(
 		self,
-		_mapping: Mapping[
+		_mapping: Mapping[  # type: ignore[type-arg]
 			commands.Cog | None, list[commands.core.Command[Any, Any, Any]],
 		],
-	) -> int:
+	) -> None:
 		if ctx_created_thread(self.context):
-			return -1
+			return
 		if not self.context.guild:
 			commands_to_display = 15
 		elif (
@@ -728,10 +730,7 @@ class BbHelpCommand(commands.HelpCommand):
 		emb = bb_embed("Beardless Bot Commands")
 		for command, description in command_list[:commands_to_display]:
 			emb.add_field(name=command, value=description)
-		await self.get_destination().send(  # type: ignore[no-untyped-call]
-			embed=emb,
-		)
-		return 1
+		await self.context.channel.send(embed=emb)
 
 	@override
 	async def send_error_message(self, error: str) -> None:
@@ -892,7 +891,13 @@ def tweet() -> str:
 	The below Markov code was originally provided by CSTUY SHIP for use in
 	another project; I have since migrated it to Python3 and made various
 	other improvements, including adding type annotations, the walrus
-	operator, the ternary operator, and other simplification.
+	operator, the ternary operator, and other simplifications.
+
+	If I may get on my soapbox a moment: This is not an LLM or anything
+	approaching machine learning. It is also certainly not "AI." That does
+	raise the question, of course: if this block of code that is clearly not
+	intelligent can generate almost-coherent prose, what does that say about
+	the "intelligence" of LLM-based "AI" tools? But I digress.
 
 	Returns:
 		str: A fake eggsoup tweet.
