@@ -587,6 +587,27 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 				)
 	return report.format(author.mention)
 
+def make_bet(
+	author: nextcord.User | nextcord.Member,
+	game: BlackjackGame,
+	bet: str | int, # expected to be either "all" or a number
+) -> tuple[str, int]:
+	result, bank = write_money(author, 300, writing=False, adding=False)
+	if result == MoneyFlags.Registered:
+		report = NewUserMsg
+	elif result == MoneyFlags.CommaInUsername:
+		assert isinstance(bank, str)
+		report = bank
+	elif isinstance(bet, int) and isinstance(bank, int) and bet > bank:
+		report = (
+			"You do not have enough BeardlessBucks to bet that much, {}!"
+		)
+	elif bet == "all":
+		assert bank is not None
+		bet = bank
+		report = game.message
+	return report, int(bet) # this cast should work
+
 
 def blackjack(
 	author: nextcord.User | nextcord.Member, bet: str | int,
@@ -610,34 +631,25 @@ def blackjack(
 		"Invalid bet. Please choose a number greater than or equal"
 		" to 0, or enter \"all\" to bet your whole balance, {}."
 	)
-	if bet != "all":
+	if bet != "all" and bet != "new":
 		try:
 			bet = int(bet)
 		except ValueError:
-			bet = -1
+			return report.format(author.mention), game
 	if (
 		(isinstance(bet, str) and bet == "all")
 		or (isinstance(bet, int) and bet >= 0)
 	):
-		result, bank = write_money(author, 300, writing=False, adding=False)
-		if result == MoneyFlags.Registered:
-			report = NewUserMsg
-		elif result == MoneyFlags.CommaInUsername:
-			assert isinstance(bank, str)
-			report = bank
-		elif isinstance(bet, int) and isinstance(bank, int) and bet > bank:
-			report = (
-				"You do not have enough BeardlessBucks to bet that much, {}!"
-			)
-		else:
-			if bet == "all":
-				assert bank is not None
-				bet = bank
-			game = BlackjackGame(author, int(bet))
-			report = game.message
-			if game.perfect():
-				write_money(author, bet, writing=True, adding=True)
-				game = None
+		game = BlackjackGame(author, multiplayer=False)
+		report, bet = make_bet(author, game, bet)
+		player = BlackjackPlayer(author)
+		player.bet = bet
+		if player.perfect():
+			write_money(author, bet, writing=True, adding=True)
+			game = None
+	if isinstance(bet, str) and bet == "new":
+		game = BlackjackGame(author, multiplayer=True)
+		report = game.message
 	return report.format(author.mention), game
 
 
