@@ -658,5 +658,7 @@ def active_game(
 			if one exists. Else, None.
 
 	"""
-	game = [g for g in games if g.user == author]
-	return game[0] if game else None
+	for g in games:
+		if g.get_player(author) is not None:
+			return g
+	return None
