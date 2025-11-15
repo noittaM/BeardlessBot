@@ -266,6 +266,10 @@ class BlackjackGame:
 		player.done = True
 		for p in self.players:
 			if not p.done:
+				self.message = (
+					f"{player.name.mention} you stayed, "
+					"waiting for others to play their turn"
+				)
 				return False
 
 		# If we got here, then the game has ended.
