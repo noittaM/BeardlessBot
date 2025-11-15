@@ -115,8 +115,8 @@ class BlackjackGame:
 
 	def __init__(
 		self,
-		user: nextcord.User | nextcord.Member,
-		bet: int,
+		owner: nextcord.User | nextcord.Member,
+		multiplayer: bool,
 	) -> None:
 		"""
 		Create a new BlackjackGame instance.
@@ -130,14 +130,17 @@ class BlackjackGame:
 			bet (int): The number of BeardlessBucks the user is betting
 
 		"""
-		self.user = user
-		self.bet = bet
+		self.owner = BlackjackPlayer(owner);
+		self.players: list[BlackjackPlayer] = [self.owner]
 		self.deck: list[int] = []
 		self.deck.extend(BlackjackGame.CardVals * 4)
-		self.hand: list[int] = []
 		self.dealerUp = self.deal_top_card()
 		self.dealerSum = self.dealerUp + self.deal_top_card()
-		self.message = self.starting_hand()
+		self.multiplayer = multiplayer
+		if not multiplayer:
+			self.message = self.starting_hand()
+		else:
+			self.message = "Multiplayer Blackjack game created!\n"
 
 	@staticmethod
 	def card_name(card: int) -> str:
@@ -169,59 +172,47 @@ class BlackjackGame:
 		"""
 		return self.deck.pop(random.randint(0, len(self.deck) - 1))
 
-	def perfect(self) -> bool:
-		"""
-		Check if the user has reached Goal, and therefore gotten Blackjack.
-
-		In the actual game of Blackjack, getting Blackjack requires hitting
-		21 with just your first two cards; for the sake of simplicity, use
-		this method for checking if the user has reached Goal at all.
-
-		Returns:
-			bool: Whether the user has gotten Blackjack.
-
-		"""
-		return sum(self.hand) == BlackjackGame.Goal
 
 	def starting_hand(self) -> str:
 		"""
-		Deal the user a starting hand of 2 cards.
+		Deal the user(s) a starting hand of 2 cards.
 
 		Returns:
-			str: The message to show the user.
+			str: The message to show the user(s).
 
 		"""
-		self.hand.append(self.deal_top_card())
-		self.hand.append(self.deal_top_card())
-		message = (
-			"Your starting hand consists of"
-			f" {BlackjackGame.card_name(self.hand[0])}"
-			f" and {BlackjackGame.card_name(self.hand[1])}."
-			f" Your total is {sum(self.hand)}. "
+		message: str = (
+			f"The dealer is showing {self.dealerUp},"
+			" with one card face down. "
 		)
-		if self.perfect():
+		for p in self.players:
+			p.hand.append(self.deal_top_card())
+			p.hand.append(self.deal_top_card())
 			message += (
-				f"You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
+				f"{p.name.mention} your starting hand consists of"
+				f" {BlackjackGame.card_name(p.hand[0])}"
+				f" and {BlackjackGame.card_name(p.hand[1])}."
+				f" Your total is {sum(p.hand)}. "
 			)
-		else:
-			message += (
-				f"The dealer is showing {self.dealerUp},"
-				" with one card face down. "
-			)
-			if self.check_bust():
-				self.hand[1] = 1
-				self.bet *= -1
-				message = (
-					"Your starting hand consists of two Aces."
-					" One of them will act as a 1. Your total is 12. "
+			if p.perfect():
+				message += (
+					f"{p.name.mention} you hit {BlackjackGame.Goal}! You win, {p.name.mention}!"
 				)
-			message += (
-				"Type !hit to deal another card to yourself, or !stay"
-				f" to stop at your current total, {self.user.mention}."
-			)
+			else:
+				if p.check_bust():
+					p.hand[1] = 1
+					p.bet *= -1
+					message = (
+						"Your starting hand consists of two Aces."
+						" One of them will act as a 1. Your total is 12. "
+					)
+				message += (
+					"Type !hit to deal another card to yourself, or !stay"
+					f" to stop at your current total, {p.name.mention}."
+				)
 		return message
 
-	def deal_to_player(self) -> str:
+	def deal_to_player(self, player: BlackjackPlayer) -> str:
 		"""
 		Deal the user a single card.
 
@@ -230,96 +221,97 @@ class BlackjackGame:
 
 		"""
 		dealt = self.deal_top_card()
-		self.hand.append(dealt)
+		player.hand.append(dealt)
 		self.message = (
-			f"You were dealt {BlackjackGame.card_name(dealt)},"
-			f" bringing your total to {sum(self.hand)}. "
+			f"{player.name.mention} you were dealt {BlackjackGame.card_name(dealt)},"
+			f" bringing your total to {sum(player.hand)}. "
 		)
-		if BlackjackGame.AceVal in self.hand and self.check_bust():
-			for i, card in enumerate(self.hand):
+		if BlackjackGame.AceVal in player.hand and player.check_bust():
+			for i, card in enumerate(player.hand):
 				if card == BlackjackGame.AceVal:
-					self.hand[i] = 1
-					self.bet *= -1
+					player.hand[i] = 1
+					player.bet *= -1
 					break
 			self.message += (
 				"To avoid busting, your Ace will be treated as a 1."
-				f" Your new total is {sum(self.hand)}. "
+				f" Your new total is {sum(player.hand)}. "
 			)
 		self.message += (
 			"Your card values are {}. The dealer is"
 			" showing {}, with one card face down."
-		).format(", ".join(str(card) for card in self.hand), self.dealerUp)
-		if self.check_bust():
-			self.message += f" You busted. Game over, {self.user.mention}."
-		elif self.perfect():
+		).format(", ".join(str(card) for card in player.hand), self.dealerUp)
+		if player.check_bust():
+			self.message += f" You busted. Game over, {player.name.mention}."
+		elif player.perfect():
 			self.message += (
-				f" You hit {BlackjackGame.Goal}! You win, {self.user.mention}!"
+				f" You hit {BlackjackGame.Goal}! You win, {player.name.mention}!"
 			)
 		else:
 			self.message += (
 				" Type !hit to deal another card to yourself, or !stay"
-				f" to stop at your current total, {self.user.mention}."
+				f" to stop at your current total, {player.name.mention}."
 			)
 		return self.message
 
-	def check_bust(self) -> bool:
+	def stay(self, player: BlackjackPlayer) -> bool:
 		"""
-		Check if a user has gone over Goal.
+		Stay the current player.
 
-		If so, invert their bet to facilitate subtracting it from their total.
+		if all other players' actions have been exhausted, end the round.
 
 		Returns:
-			bool: Whether the user has gone over Goal.
+			bool: the round has ended.
 
 		"""
-		if sum(self.hand) > BlackjackGame.Goal:
-			self.bet *= -1
-			return True
-		return False
+		player.done = True
+		for p in self.players:
+			if not p.done:
+				return False
 
-	def stay(self) -> int:
-		"""
-		End the game.
-
-		Returns:
-			int: 1 if user's balance changed; else, 0.
-
-		"""
-		change = 1
+		# If we got here, then the game has ended.
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
 			self.dealerSum += self.deal_top_card()
-		self.message = "The dealer has a total of {}."
-		if sum(self.hand) > self.dealerSum and not self.check_bust():
-			self.message += f" You're closer to {BlackjackGame.Goal}"
-			self.message += (
-				" with a sum of {}. You win!  Your winnings"
-				" have been added to your balance, {}."
+		self.message = "The dealer has a total of {}.\n"
+
+		for p in self.players:
+			self.message +=f"{p.name.mention}\n"
+			if sum(p.hand) > self.dealerSum and not p.check_bust():
+				self.message += f"You're closer to {BlackjackGame.Goal} "
+				self.message += (
+					"with a sum of {}. You win! Your winnings "
+					"have been added to your balance, {}.\n"
+				)
+			elif sum(p.hand) == self.dealerSum:
+				self.message += (
+					"That ties your sum of {}. Your bet has been returned, {}.\n"
+				)
+			elif self.dealerSum > BlackjackGame.Goal:
+				self.message += (
+					"You have a sum of {}. The dealer busts. You win!\n"
+					"Your winnings have been added to your balance, {}.\n"
+				)
+			else:
+				self.message += f"That's closer to {BlackjackGame.Goal} "
+				self.message += (
+					"than your sum of {}. You lose. Your loss "
+					"has been deducted from your balance, {}.\n"
+				)
+				p.bet *= -1
+			self.message = self.message.format(
+				self.dealerSum, sum(p.hand), p.name.mention,
 			)
-		elif sum(self.hand) == self.dealerSum:
-			change = 0
-			self.message += (
-				" That ties your sum of {}. Your bet has been returned, {}."
-			)
-		elif self.dealerSum > BlackjackGame.Goal:
-			self.message += (
-				" You have a sum of {}. The dealer busts. You win!"
-				" Your winnings have been added to your balance, {}."
-			)
-		else:
-			self.message += f" That's closer to {BlackjackGame.Goal}"
-			self.message += (
-				" than your sum of {}. You lose. Your loss"
-				" has been deducted from your balance, {}."
-			)
-			self.bet *= -1
-		self.message = self.message.format(
-			self.dealerSum, sum(self.hand), self.user.mention,
-		)
-		if not self.bet:
-			self.message += (
-				" Unfortunately, you bet nothing, so this was all pointless."
-			)
-		return change
+			if not p.bet:
+				self.message += (
+					"Unfortunately, you bet nothing, so this was all pointless.\n"
+				)
+		return True
+
+
+	def get_player(self, player: nextcord.User | nextcord.Member) -> BlackjackPlayer | None:
+		for p in self.players:
+			if p.name == player:
+				return p
+		return None
 
 
 class MoneyFlags(Enum):
