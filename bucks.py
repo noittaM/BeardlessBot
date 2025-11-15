@@ -30,6 +30,44 @@ NoGameMsg = (
 )
 
 
+class BlackjackPlayer:
+	def __init__(self, name: nextcord.User | nextcord.Member):
+		self.name: nextcord.User | nextcord.Member =  name
+		self.hand: list[int] = []
+		self.bet: int | str = 10
+		self.done: bool = False
+
+	def check_bust(self) -> bool:
+		"""
+		Check if a user has gone over Goal.
+
+		If so, invert their bet to facilitate subtracting it from their total.
+
+		Returns:
+			bool: Whether the user has gone over Goal.
+
+		"""
+		if sum(self.hand) > BlackjackGame.Goal:
+			self.bet *= -1
+			return True
+		return False
+
+
+	def perfect(self) -> bool:
+		"""
+		Check if the user has reached Goal, and therefore gotten Blackjack.
+
+		In the actual game of Blackjack, getting Blackjack requires hitting
+		21 with just your first two cards; for the sake of simplicity, use
+		this method for checking if the user has reached Goal at all.
+
+		Returns:
+			bool: Whether the user has gotten Blackjack.
+
+		"""
+		return sum(self.hand) == BlackjackGame.Goal
+
+
 class BlackjackGame:
 	"""
 	Blackjack game instance.
