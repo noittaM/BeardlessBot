@@ -360,8 +360,9 @@ async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
 		assert player is not None
 		report, bet_number = bucks.make_bet(ctx.author, game, bet)
 		player.bet = bet_number
+		report = f"Your current bet is {bet_number}\n{ctx.author.mention}"
 	else:
-		report = bucks.NoGameMsg.format(ctx.author.mention)
+		report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 

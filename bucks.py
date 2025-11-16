@@ -29,6 +29,11 @@ NoGameMsg = (
 	" going, {}. Type !blackjack to start one."
 )
 
+NoMultiplayerGameMsg = (
+	"You do not currently have a multiplayer game of blackjack"
+	" going, {}. Type '!blackjack new' to start one."
+)
+
 InvalidBetMsg = (
 	"Invalid bet. Please choose a number greater than or equal"
 	" to 0, or enter \"all\" to bet your whole balance, {}."
