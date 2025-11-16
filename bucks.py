@@ -599,6 +599,7 @@ def make_bet(
 	bet: str | int, # expected to be either "all" or a number
 ) -> tuple[str, int]:
 	result, bank = write_money(author, 300, writing=False, adding=False)
+	report = ""
 	if result == MoneyFlags.Registered:
 		report = NewUserMsg
 	elif result == MoneyFlags.CommaInUsername:
