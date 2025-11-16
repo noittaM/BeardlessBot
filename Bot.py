@@ -359,13 +359,15 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
 		if game := bucks.active_game(BlackjackGames, ctx.author):
-			report = game.deal_to_player()
-			if game.check_bust() or game.perfect():
-				game.check_bust()
+			player = game.get_player(ctx.author)
+			assert player is not None # can't be None because they're in a game
+			report = game.deal_to_player(player)
+			if player.check_bust() or player.perfect():
 				bucks.write_money(
-					ctx.author, game.bet, writing=True, adding=True,
+					ctx.author, player.bet, writing=True, adding=True,
 				)
-				BlackjackGames.remove(game)
+				if not game.multiplayer:
+					BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -379,11 +381,13 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
 		if game := bucks.active_game(BlackjackGames, ctx.author):
-			result = game.stay()
+			player = game.get_player(ctx.author)
+			assert player is not None
+			round_ended = game.stay(player)
 			report = game.message
-			if result and game.bet:
+			if round_ended:
 				written, bonus = bucks.write_money(
-					ctx.author, game.bet, writing=True, adding=True,
+					ctx.author, player.bet, writing=True, adding=True,
 				)
 				if written == bucks.MoneyFlags.CommaInUsername:
 					assert isinstance(bonus, str)
