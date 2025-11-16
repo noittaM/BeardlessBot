@@ -285,10 +285,9 @@ class BlackjackGame:
 		# If we got here, then the game has ended.
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
 			self.dealerSum += self.deal_top_card()
-		self.message = "The dealer has a total of {}.\n"
+		self.message = "The dealer has a total of {}. "
 
 		for p in self.players:
-			self.message +=f"{p.name.mention}\n"
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
 				self.message += f"You're closer to {BlackjackGame.Goal} "
 				self.message += (
@@ -301,7 +300,7 @@ class BlackjackGame:
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
 				self.message += (
-					"You have a sum of {}. The dealer busts. You win!\n"
+					"You have a sum of {}. The dealer busts. You win! "
 					"Your winnings have been added to your balance, {}.\n"
 				)
 			else:
