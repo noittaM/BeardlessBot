@@ -44,7 +44,7 @@ class BlackjackPlayer:
 	def __init__(self, name: nextcord.User | nextcord.Member):
 		self.name: nextcord.User | nextcord.Member =  name
 		self.hand: list[int] = []
-		self.bet: int | str = 10
+		self.bet: int = 10
 		self.done: bool = False
 
 	def check_bust(self) -> bool:
