@@ -350,6 +350,22 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	return 1
 
 
+@BeardlessBot.command(name="bet")
+async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
+	if misc.ctx_created_thread(ctx):
+		return -1
+	game = bucks.active_game(BlackjackGames, ctx.author)
+	if game is not None:
+		player = game.get_player(ctx.author)
+		assert player is not None
+		report, bet_number = bucks.make_bet(ctx.author, game, bet)
+		player.bet = bet_number
+	else:
+		report = bucks.NoGameMsg.format(ctx.author.mention)
+	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
+	return 1
+
+
 @BeardlessBot.command(name="deal", aliases=("hit",))
 async def cmd_deal(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
