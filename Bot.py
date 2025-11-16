@@ -329,7 +329,7 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 		return -1
 	report = (
 		bucks.FinMsg.format(ctx.author.mention)
-		if bucks.active_game(BlackjackGames, ctx.author)
+		if bucks.player_in_game(BlackjackGames, ctx.author)
 		else bucks.flip(ctx.author, bet.lower())
 	)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Coin Flip", report))
@@ -340,7 +340,7 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	if bucks.active_game(BlackjackGames, ctx.author):
+	if bucks.player_in_game(BlackjackGames, ctx.author):
 		report = bucks.FinMsg.format(ctx.author.mention)
 	else:
 		report, game = bucks.blackjack(ctx.author, bet)
@@ -354,10 +354,8 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	game = bucks.active_game(BlackjackGames, ctx.author)
-	if game is not None:
-		player = game.get_player(ctx.author)
-		assert player is not None
+	if result := bucks.player_in_game(BlackjackGames, ctx.author):
+		game, player = result
 		report, bet_number = bucks.make_bet(ctx.author, game, bet)
 		player.bet = bet_number
 		report = f"Your current bet is {bet_number}\n{ctx.author.mention}"
@@ -375,9 +373,8 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
-		if game := bucks.active_game(BlackjackGames, ctx.author):
-			player = game.get_player(ctx.author)
-			assert player is not None # can't be None because they're in a game
+		if result := bucks.player_in_game(BlackjackGames, ctx.author):
+			game, player = result
 			report = game.deal_to_player(player)
 			if player.check_bust() or player.perfect():
 				bucks.write_money(
@@ -397,9 +394,8 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
-		if game := bucks.active_game(BlackjackGames, ctx.author):
-			player = game.get_player(ctx.author)
-			assert player is not None
+		if result := bucks.player_in_game(BlackjackGames, ctx.author):
+			game, player = result
 			round_ended = game.stay(player)
 			report = game.message
 			if round_ended:

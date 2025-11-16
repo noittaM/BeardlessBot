@@ -661,9 +661,9 @@ def blackjack(
 	return report.format(author.mention), game
 
 
-def active_game(
+def player_in_game(
 	games: list[BlackjackGame], author: nextcord.User | nextcord.Member,
-) -> BlackjackGame | None:
+) -> tuple[BlackjackGame, BlackjackPlayer] | None:
 	"""
 	Check if a user has an active game of Blackjack.
 
@@ -674,11 +674,13 @@ def active_game(
 		author (nextcord.User or Member): The user who is gambling
 
 	Returns:
-		BlackjackGame or None: The user's current Blackjack game,
-			if one exists. Else, None.
+		tuple[BlackjackGame, BlackjackPlayer] or None: The player associated
+		with the discord account and the game they're in if they're in one.
+		Else, None.
 
 	"""
-	for g in games:
-		if g.get_player(author) is not None:
-			return g
+	for game in games:
+		player = game.get_player(author)
+		if player is not None:
+			return game, player
 	return None
