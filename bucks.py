@@ -29,6 +29,11 @@ NoGameMsg = (
 	" going, {}. Type !blackjack to start one."
 )
 
+InvalidBetMsg = (
+	"Invalid bet. Please choose a number greater than or equal"
+	" to 0, or enter \"all\" to bet your whole balance, {}."
+)
+
 
 class BlackjackPlayer:
 	def __init__(self, name: nextcord.User | nextcord.Member):
@@ -547,10 +552,7 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 
 	"""
 	heads = random.randint(0, 1)
-	report = (
-		"Invalid bet. Please choose a number greater than or equal"
-		" to 0, or enter \"all\" to bet your whole balance, {}."
-	)
+	report = InvalidBetMsg
 	if bet == "all":
 		if not heads:
 			bet = "-all"
@@ -631,10 +633,7 @@ def blackjack(
 
 	"""
 	game = None
-	report = (
-		"Invalid bet. Please choose a number greater than or equal"
-		" to 0, or enter \"all\" to bet your whole balance, {}."
-	)
+	report = InvalidBetMsg
 	if bet != "all" and bet != "new":
 		try:
 			bet = int(bet)
