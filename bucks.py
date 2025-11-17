@@ -621,14 +621,15 @@ def make_bet(
 
 
 def blackjack(
-	author: nextcord.User | nextcord.Member, bet: str | int,
+	author: nextcord.User | nextcord.Member,
+	bet: str | int | None,
 ) -> tuple[str, BlackjackGame | None]:
 	"""
 	Gamble a certain number of BeardlessBucks on blackjack.
 
 	Args:
 		author (nextcord.User or Member): The user who is gambling
-		bet (str): The amount author is wagering
+		bet (str): The amount author is wagering. None for a multiplayer game
 
 	Returns:
 		str: A report of the outcome and how author's balance changed.
@@ -639,7 +640,11 @@ def blackjack(
 	"""
 	game = None
 	report = InvalidBetMsg
-	if bet != "all" and bet != "new":
+	if bet is None:
+		game = BlackjackGame(author, multiplayer=True)
+		report = game.message
+		return report.format(author.mention), game
+	if bet != "all":
 		try:
 			bet = int(bet)
 		except ValueError:
@@ -655,9 +660,6 @@ def blackjack(
 		if player.perfect():
 			write_money(author, bet, writing=True, adding=True)
 			game = None
-	if isinstance(bet, str) and bet == "new":
-		game = BlackjackGame(author, multiplayer=True)
-		report = game.message
 	return report.format(author.mention), game
 
 

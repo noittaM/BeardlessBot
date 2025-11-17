@@ -336,6 +336,7 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 	return 1
 
 
+# NOTE: duplicate code
 @BeardlessBot.command(name="blackjack", aliases=("bj",))
 async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
@@ -344,6 +345,21 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 		report = bucks.FinMsg.format(ctx.author.mention)
 	else:
 		report, game = bucks.blackjack(ctx.author, bet)
+		if game:
+			BlackjackGames.append(game)
+	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
+	return 1
+
+
+# NOTE: duplicate code
+@BeardlessBot.command(name="table")
+async def cmd_table(ctx: misc.BotContext) -> int:
+	if misc.ctx_created_thread(ctx):
+		return -1
+	if bucks.player_in_game(BlackjackGames, ctx.author):
+		report = bucks.FinMsg.format(ctx.author.mention)
+	else:
+		report, game = bucks.blackjack(ctx.author, None)
 		if game:
 			BlackjackGames.append(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
