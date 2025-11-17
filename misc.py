@@ -962,6 +962,26 @@ def get_last_numeric_char(duration: str) -> int:
 			return i
 	return len(duration)
 
+async def process_command_target(
+	ctx: BotContext, target: str | None, bot: commands.Bot,
+) -> nextcord.Member | None:
+	if not target:
+		await ctx.send(f"Please specify a target, {ctx.author.mention}.")
+		return None
+	try:
+		command_target = await commands.MemberConverter().convert(ctx, target)
+	except commands.MemberNotFound:
+		await ctx.send(embed=bb_embed(
+			"Beardless Bot Join",
+			"Invalid target! Target must be a mention or user ID.",
+		))
+		return None
+	if bot.user is not None and command_target.id == bot.user.id:
+		await ctx.send("I'm not in match, idiot.")
+		return None
+	return command_target
+
+
 
 async def process_mute_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,

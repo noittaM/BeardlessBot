@@ -402,6 +402,40 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 	return 1
 
 
+@BeardlessBot.command(name="jointable")
+async def cmd_join(
+	ctx: misc.BotContext,
+	target: str | None = None,
+) -> int:
+	if misc.ctx_created_thread(ctx) or not ctx.guild:
+		return -1
+	if not (join_target := await misc.process_command_target(
+		ctx, target, BeardlessBot,
+	)):
+		return 0
+	if result := bucks.player_in_game(BlackjackGames, ctx.author):
+		bucks.FinMsg.format(ctx.author.mention)
+	elif result := bucks.player_in_game(BlackjackGames, join_target):
+		game, player = result
+		game.add_player(ctx.author)
+		emb = misc.bb_embed(
+			"Beardless Bot Join", "Joined {}'s blackjack game.".format(join_target.mention)
+		)
+	else:
+		emb = misc.bb_embed(
+			"Beardless Bot Join",
+			"Player " + join_target.mention + "is not in a blackjack game"
+		)
+	
+	await ctx.send(embed=emb)
+	# if channel := misc.get_log_channel(ctx.guild):
+	# 	await channel.send(embed=logs.log_mute(
+	# 		join_target, ctx.message, duration,
+	# 	))
+	return 1
+
+
+
 @BeardlessBot.command(name="stay", aliases=("stand",))
 async def cmd_stay(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
