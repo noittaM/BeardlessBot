@@ -173,6 +173,11 @@ class BlackjackGame:
 			return "an Ace"
 		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
+
+	def add_player(self, player: nextcord.User | nextcord.Member):
+		self.players.append(BlackjackPlayer(player))
+
+
 	def deal_top_card(self) -> int:
 		"""
 		Remove and return the top card from the deck.
