@@ -402,6 +402,30 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 	return 1
 
 
+@BeardlessBot.command(name="tablestart")
+async def cmd_tablestart(ctx: misc.BotContext) -> int:
+	if misc.ctx_created_thread(ctx):
+		return -1
+	else:
+		report = bucks.NoGameMsg.format(ctx.author.mention)
+		if result := bucks.player_in_game(BlackjackGames, ctx.author):
+			game, player = result
+			if game.owner is not player:
+				report = "You are not the owner of this table"
+			elif not game.ready_to_start():
+				report = "Not all players have made their bets"
+			else:
+				report = "Match started\n"
+				report += game.start_game()
+				for p in game.players:
+					if p.perfect():
+						bucks.write_money(
+							ctx.author, p.bet, writing=True, adding=True,
+						)
+	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
+	return 1
+
+
 @BeardlessBot.command(name="jointable")
 async def cmd_join(
 	ctx: misc.BotContext,
