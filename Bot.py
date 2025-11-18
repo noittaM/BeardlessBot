@@ -446,8 +446,11 @@ async def cmd_join(
 		report = bucks.FinMsg.format(ctx.author.mention)
 	elif result := bucks.player_in_game(BlackjackGames, join_target):
 		game, player = result
-		game.add_player(ctx.author)
-		report = "Joined {}'s blackjack game.".format(join_target.mention)
+		if game.multiplayer:
+			game.add_player(ctx.author)
+			report = "Joined {}'s blackjack game.".format(join_target.mention)
+		else:
+			report = "Can't join {}'s singleplayer blackjack game.".format(join_target.mention)
 	else:
 		report = "Player " + join_target.mention + "is not in a blackjack game"
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Join", report))

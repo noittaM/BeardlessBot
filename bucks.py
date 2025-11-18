@@ -153,6 +153,7 @@ class BlackjackGame:
 		self.multiplayer = multiplayer
 		self.started: bool = False
 		self.turn_idx = 0
+		self.multiplayer = multiplayer # only multiplayer games can be joined
 		if not multiplayer:
 			self.message = self.start_game()
 		else:
