@@ -154,7 +154,7 @@ class BlackjackGame:
 		self.started: bool = False
 		self.turn_idx = 0
 		if not multiplayer:
-			self.message = self.starting_hand()
+			self.message = self.start_game()
 		else:
 			self.message = "Multiplayer Blackjack game created!\n"
 
@@ -204,7 +204,7 @@ class BlackjackGame:
 		return self.deck.pop(random.randint(0, len(self.deck) - 1))
 
 
-	def starting_hand(self) -> str:
+	def start_game(self) -> str:
 		"""
 		Deal the user(s) a starting hand of 2 cards.
 
