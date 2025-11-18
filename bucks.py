@@ -151,7 +151,7 @@ class BlackjackGame:
 		self.dealerUp = self.deal_top_card()
 		self.dealerSum = self.dealerUp + self.deal_top_card()
 		self.multiplayer = multiplayer
-		self.match_started: bool = False
+		self.started: bool = False
 		if not multiplayer:
 			self.message = self.starting_hand()
 		else:
@@ -201,7 +201,7 @@ class BlackjackGame:
 			str: The message to show the user(s).
 
 		"""
-		self.match_started = True
+		self.started = True
 		message: str = (
 			f"The dealer is showing {self.dealerUp},"
 			" with one card face down. "
