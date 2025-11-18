@@ -59,6 +59,7 @@ class BlackjackPlayer:
 		"""
 		if sum(self.hand) > BlackjackGame.Goal:
 			self.bet *= -1
+			self.done = True
 			return True
 		return False
 
@@ -75,7 +76,10 @@ class BlackjackPlayer:
 			bool: Whether the user has gotten Blackjack.
 
 		"""
-		return sum(self.hand) == BlackjackGame.Goal
+		if sum(self.hand) == BlackjackGame.Goal:
+			self.done = True
+			return True
+		return False
 
 
 class BlackjackGame:
@@ -203,6 +207,7 @@ class BlackjackGame:
 			" with one card face down. "
 		)
 		for p in self.players:
+			p.done = False
 			p.hand.append(self.deal_top_card())
 			p.hand.append(self.deal_top_card())
 			message += (
