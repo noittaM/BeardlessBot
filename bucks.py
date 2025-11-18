@@ -152,6 +152,7 @@ class BlackjackGame:
 		self.dealerSum = self.dealerUp + self.deal_top_card()
 		self.multiplayer = multiplayer
 		self.started: bool = False
+		self.turn_idx = 0
 		if not multiplayer:
 			self.message = self.starting_hand()
 		else:
@@ -187,6 +188,9 @@ class BlackjackGame:
 
 	def add_player(self, player: nextcord.User | nextcord.Member):
 		self.players.append(BlackjackPlayer(player))
+
+	def is_turn(self, player: BlackjackPlayer):
+		return self.players[self.turn_idx] == player
 
 
 	def deal_top_card(self) -> int:
