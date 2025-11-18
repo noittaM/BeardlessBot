@@ -391,13 +391,18 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
 		if result := bucks.player_in_game(BlackjackGames, ctx.author):
 			game, player = result
-			report = game.deal_to_player(player)
-			if player.check_bust() or player.perfect():
-				bucks.write_money(
-					ctx.author, player.bet, writing=True, adding=True,
-				)
-				if not game.multiplayer:
-					BlackjackGames.remove(game)
+			if not game.started:
+				report = "Game has not started yet"
+			elif not game.is_turn(player):
+				report = f"It is not your turn {ctx.author.mention}"
+			else:
+				report = game.deal_current_player()
+				if player.check_bust() or player.perfect():
+					bucks.write_money(
+						ctx.author, player.bet, writing=True, adding=True,
+					)
+					if not game.multiplayer:
+						BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -470,16 +475,21 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 		report = bucks.NoGameMsg.format(ctx.author.mention)
 		if result := bucks.player_in_game(BlackjackGames, ctx.author):
 			game, player = result
-			round_ended = game.stay(player)
-			report = game.message
-			if round_ended:
-				written, bonus = bucks.write_money(
-					ctx.author, player.bet, writing=True, adding=True,
-				)
-				if written == bucks.MoneyFlags.CommaInUsername:
-					assert isinstance(bonus, str)
-					report = bonus
-			BlackjackGames.remove(game)
+			if not game.started:
+				report = "Game has not started yet"
+			elif not game.is_turn(player):
+				report = f"It is not your turn {ctx.author.mention}"
+			else:
+				round_ended = game.stay_current_player()
+				report = game.message
+				if round_ended:
+					written, bonus = bucks.write_money(
+						ctx.author, player.bet, writing=True, adding=True,
+					)
+					if written == bucks.MoneyFlags.CommaInUsername:
+						assert isinstance(bonus, str)
+						report = bonus
+					BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 

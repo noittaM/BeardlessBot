@@ -245,7 +245,12 @@ class BlackjackGame:
 				)
 		return message
 
-	def deal_to_player(self, player: BlackjackPlayer) -> str:
+	def advance_turn(self) -> None:
+		self.turn_idx += 1
+		self.turn_idx %= len(self.players)
+
+
+	def deal_current_player(self) -> str:
 		"""
 		Deal the user a single card.
 
@@ -253,13 +258,16 @@ class BlackjackGame:
 			str: The message to show the user.
 
 		"""
+		assert self.started
 		dealt = self.deal_top_card()
+		player = self.players[self.turn_idx]
 		player.hand.append(dealt)
 		self.message = (
 			f"{player.name.mention} you were dealt {BlackjackGame.card_name(dealt)},"
 			f" bringing your total to {sum(player.hand)}. "
 		)
 		if BlackjackGame.AceVal in player.hand and player.check_bust():
+			self.advance_turn()
 			for i, card in enumerate(player.hand):
 				if card == BlackjackGame.AceVal:
 					player.hand[i] = 1
@@ -276,6 +284,7 @@ class BlackjackGame:
 		if player.check_bust():
 			self.message += f" You busted. Game over, {player.name.mention}."
 		elif player.perfect():
+			self.advance_turn()
 			self.message += (
 				f" You hit {BlackjackGame.Goal}! You win, {player.name.mention}!"
 			)
@@ -286,7 +295,7 @@ class BlackjackGame:
 			)
 		return self.message
 
-	def stay(self, player: BlackjackPlayer) -> bool:
+	def stay_current_player(self) -> bool:
 		"""
 		Stay the current player.
 
@@ -296,6 +305,8 @@ class BlackjackGame:
 			bool: the round has ended.
 
 		"""
+		player = self.players[self.turn_idx]
+		self.advance_turn()
 		player.done = True
 		for p in self.players:
 			if not p.done:
