@@ -178,6 +178,13 @@ class BlackjackGame:
 		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
 
+	def ready_to_start(self) -> bool:
+		for player in self.players:
+			if player.bet is None:
+				return False
+		return True
+
+
 	def add_player(self, player: nextcord.User | nextcord.Member):
 		self.players.append(BlackjackPlayer(player))
 
