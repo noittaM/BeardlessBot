@@ -443,20 +443,14 @@ async def cmd_join(
 	)):
 		return 0
 	if result := bucks.player_in_game(BlackjackGames, ctx.author):
-		bucks.FinMsg.format(ctx.author.mention)
+		report = bucks.FinMsg.format(ctx.author.mention)
 	elif result := bucks.player_in_game(BlackjackGames, join_target):
 		game, player = result
 		game.add_player(ctx.author)
-		emb = misc.bb_embed(
-			"Beardless Bot Join", "Joined {}'s blackjack game.".format(join_target.mention)
-		)
+		report = "Joined {}'s blackjack game.".format(join_target.mention)
 	else:
-		emb = misc.bb_embed(
-			"Beardless Bot Join",
-			"Player " + join_target.mention + "is not in a blackjack game"
-		)
-	
-	await ctx.send(embed=emb)
+		report = "Player " + join_target.mention + "is not in a blackjack game"
+	await ctx.send(embed=misc.bb_embed("Beardless Bot Join", report))
 	# if channel := misc.get_log_channel(ctx.guild):
 	# 	await channel.send(embed=logs.log_mute(
 	# 		join_target, ctx.message, duration,
