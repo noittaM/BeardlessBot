@@ -148,9 +148,8 @@ class BlackjackGame:
 		self.players: list[BlackjackPlayer] = [self.owner]
 		self.deck: list[int] = []
 		self.deck.extend(BlackjackGame.CardVals * 4)
-		self.dealerUp = self.deal_top_card()
-		self.dealerSum = self.dealerUp + self.deal_top_card()
-		self.multiplayer = multiplayer
+		self.dealerUp: int | None = None
+		self.dealerSum: int = 0
 		self.started: bool = False
 		self.turn_idx = 0
 		self.multiplayer = multiplayer # only multiplayer games can be joined
@@ -214,12 +213,15 @@ class BlackjackGame:
 
 		"""
 		self.started = True
+		self.dealerUp = self.deal_top_card()
+		self.dealerSum = self.dealerUp + self.deal_top_card()
 		message: str = (
 			f"The dealer is showing {self.dealerUp},"
 			" with one card face down. "
 		)
 		for p in self.players:
 			p.done = False
+			p.hand = []
 			p.hand.append(self.deal_top_card())
 			p.hand.append(self.deal_top_card())
 			message += (
