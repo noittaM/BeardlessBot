@@ -158,6 +158,17 @@ class BlackjackGame:
 		else:
 			self.message = "Multiplayer Blackjack game created!\n"
 
+
+	def end_round(self) -> None:
+		self.started = False
+		self.dealerUp = None
+		self.dealerSum = 0
+		for p in self.players:
+			p.hand = []
+			p.done = False
+		self.message = "Round ended!"
+
+
 	@staticmethod
 	def card_name(card: int) -> str:
 		"""
