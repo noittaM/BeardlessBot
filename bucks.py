@@ -45,7 +45,6 @@ class BlackjackPlayer:
 		self.name: nextcord.User | nextcord.Member =  name
 		self.hand: list[int] = []
 		self.bet: int = 10
-		self.done: bool = False
 
 	def check_bust(self) -> bool:
 		"""
@@ -59,7 +58,6 @@ class BlackjackPlayer:
 		"""
 		if sum(self.hand) > BlackjackGame.Goal:
 			self.bet *= -1
-			self.done = True
 			return True
 		return False
 
@@ -77,7 +75,6 @@ class BlackjackPlayer:
 
 		"""
 		if sum(self.hand) == BlackjackGame.Goal:
-			self.done = True
 			return True
 		return False
 
@@ -165,7 +162,6 @@ class BlackjackGame:
 		self.dealerSum = 0
 		for p in self.players:
 			p.hand = []
-			p.done = False
 		self.message = "Round ended!"
 
 
@@ -231,7 +227,6 @@ class BlackjackGame:
 			" with one card face down. "
 		)
 		for p in self.players:
-			p.done = False
 			p.hand = []
 			p.hand.append(self.deal_top_card())
 			p.hand.append(self.deal_top_card())
@@ -321,15 +316,6 @@ class BlackjackGame:
 		"""
 		player = self.players[self.turn_idx]
 		self.advance_turn()
-		player.done = True
-		for p in self.players:
-			if not p.done:
-				self.message = (
-					f"{player.name.mention} you stayed, "
-					"waiting for others to play their turn"
-				)
-				return False
-
 		# If we got here, then the game has ended.
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
 			self.dealerSum += self.deal_top_card()
