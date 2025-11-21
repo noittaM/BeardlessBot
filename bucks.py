@@ -191,6 +191,8 @@ class BlackjackGame:
 		self.players: list[BlackjackPlayer] = [self.owner]
 		self.deck: list[int] = []
 		self.deck.extend(BlackjackGame.CardVals * 4)
+		# FIXME: dealerUp should NEVER be None
+		# and dealerSum should NEVER be 0
 		self.dealerUp: int | None = None
 		self.dealerSum: int = 0
 		self.started: bool = False
@@ -386,44 +388,9 @@ class BlackjackGame:
 			bool: the round has ended.
 
 		"""
-		player = self.players[self.turn_idx]
+		self.message = f"{self.players[self.turn_idx].name.mention} you stayed."
 		self.advance_turn()
-		# If we got here, then the game has ended.
-		while self.dealerSum < BlackjackGame.DealerSoftGoal:
-			self.dealerSum += self.deal_top_card()
-		self.message = "The dealer has a total of {}. "
-
-		for p in self.players:
-			if sum(p.hand) > self.dealerSum and not p.check_bust():
-				self.message += f"You're closer to {BlackjackGame.Goal} "
-				self.message += (
-					"with a sum of {}. You win! Your winnings "
-					"have been added to your balance, {}.\n"
-				)
-			elif sum(p.hand) == self.dealerSum:
-				self.message += (
-					"That ties your sum of {}. Your bet has been returned, {}.\n"
-				)
-			elif self.dealerSum > BlackjackGame.Goal:
-				self.message += (
-					"You have a sum of {}. The dealer busts. You win! "
-					"Your winnings have been added to your balance, {}.\n"
-				)
-			else:
-				self.message += f"That's closer to {BlackjackGame.Goal} "
-				self.message += (
-					"than your sum of {}. You lose. Your loss "
-					"has been deducted from your balance, {}.\n"
-				)
-				p.bet *= -1
-			self.message = self.message.format(
-				self.dealerSum, sum(p.hand), p.name.mention,
-			)
-			if not p.bet:
-				self.message += (
-					"Unfortunately, you bet nothing, so this was all pointless.\n"
-				)
-		return True
+		return self.message
 
 
 	def get_player(self, player: nextcord.User | nextcord.Member) -> BlackjackPlayer | None:
