@@ -239,10 +239,10 @@ class BlackjackGame:
 		return True
 
 
-	def add_player(self, player: nextcord.User | nextcord.Member):
+	def add_player(self, player: nextcord.User | nextcord.Member) -> None:
 		self.players.append(BlackjackPlayer(player))
 
-	def is_turn(self, player: BlackjackPlayer):
+	def is_turn(self, player: BlackjackPlayer) -> bool:
 		return self.players[self.turn_idx] == player
 
 
