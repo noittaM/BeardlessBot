@@ -406,6 +406,8 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 					)
 					if not game.multiplayer:
 						BlackjackGames.remove(game)
+					else:
+						game.end_round()
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -489,7 +491,10 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 					if written == bucks.MoneyFlags.CommaInUsername:
 						assert isinstance(bonus, str)
 						report = bonus
-					BlackjackGames.remove(game)
+					if not game.multiplayer:
+						BlackjackGames.remove(game)
+					else:
+						game.end_round()
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
