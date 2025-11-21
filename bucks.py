@@ -94,20 +94,20 @@ class DealReportParams:
 	perfect: bool = False
 
 
-	def make(self) -> str:
+	def make_report(self) -> str:
 		report = (
 			f"{self.mention_str} you were dealt {BlackjackGame.card_name(self.dealt_card)},"
 			f" bringing your total to "
 		)
 		if self.ace_overflow:
 			report += (
-				f"{sum(self.new_hand) + 10}."
-				"To avoid busting, your Ace will be treated as a 1."
-				f" Your new total is {sum(self.new_hand)}. "
+				f"{sum(self.new_hand) + 10}. "
+				"To avoid busting, your Ace will be treated as a 1. "
+				f"Your new total is {sum(self.new_hand)}. "
 			)
 		else:
 			report += (
-				f"{sum(self.new_hand)}."
+				f"{sum(self.new_hand)}. "
 				"Your card values are {}. The dealer is"
 				" showing {}, with one card face down."
 			).format(", ".join(str(card) for card in self.new_hand), self.dealer_up)
