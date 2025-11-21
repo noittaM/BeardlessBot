@@ -708,17 +708,20 @@ def make_bet(
 	game: BlackjackGame,
 	bet: str | int, # expected to be either "all" or a number
 ) -> tuple[str, int]:
+	report = InvalidBetMsg
 	result, bank = write_money(author, 300, writing=False, adding=False)
-	report = ""
 	if result == MoneyFlags.Registered:
 		report = NewUserMsg
 	elif result == MoneyFlags.CommaInUsername:
 		assert isinstance(bank, str)
 		report = bank
-	elif isinstance(bet, int) and isinstance(bank, int) and bet > bank:
-		report = (
-			"You do not have enough BeardlessBucks to bet that much, {}!"
-		)
+	elif isinstance(bet, int) and isinstance(bank, int):
+		if bet > bank:
+			report = (
+				"You do not have enough BeardlessBucks to bet that much, {}!"
+			)
+		else:
+			report = game.message
 	elif bet == "all":
 		assert bank is not None
 		bet = bank
