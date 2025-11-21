@@ -6,6 +6,8 @@ from collections import OrderedDict
 from enum import Enum
 from operator import itemgetter
 from pathlib import Path
+from dataclasses import dataclass
+from dataclasses import field
 
 import nextcord
 
@@ -77,6 +79,50 @@ class BlackjackPlayer:
 		if sum(self.hand) == BlackjackGame.Goal:
 			return True
 		return False
+
+
+@dataclass
+class DealReportParams:
+	dealer_up: int
+	mention_str: str
+
+	dealt_card: int = 0
+	new_hand: list[int] = field(default_factory=lambda:[])
+	ace_overflow: bool = False
+	bet_is_zero: bool = False
+	bust: bool = False
+	perfect: bool = False
+
+
+	def make(self) -> str:
+		report = (
+			f"{self.mention_str} you were dealt {BlackjackGame.card_name(self.dealt_card)},"
+			f" bringing your total to "
+		)
+		if self.ace_overflow:
+			report += (
+				f"{sum(self.new_hand) + 10}."
+				"To avoid busting, your Ace will be treated as a 1."
+				f" Your new total is {sum(self.new_hand)}. "
+			)
+		else:
+			report += (
+				f"{sum(self.new_hand)}."
+				"Your card values are {}. The dealer is"
+				" showing {}, with one card face down."
+			).format(", ".join(str(card) for card in self.new_hand), self.dealer_up)
+		if self.bust:
+			report += f" You busted. Game over, {self.mention_str}."
+		if self.perfect:
+			report += (
+				f" You hit {BlackjackGame.Goal}! You win, {self.mention_str}!"
+			)
+		else:
+			report += (
+				" Type !hit to deal another card to yourself, or !stay"
+				f" to stop at your current total, {self.mention_str}."
+			)
+		return report
 
 
 class BlackjackGame:
