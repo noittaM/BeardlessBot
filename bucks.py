@@ -342,7 +342,14 @@ class BlackjackGame:
 
 	def advance_turn(self) -> None:
 		self.turn_idx += 1
-		self.turn_idx %= len(self.players)
+		while True:
+			if self.turn_idx == len(self.players):
+				self.end_round()
+				return
+			player = self.players[self.turn_idx]
+			# skip over all players that can't play
+			if not player.check_bust() and not player.perfect():
+				return
 
 
 	def deal_current_player(self, report_params: DealReportParams) -> None:
