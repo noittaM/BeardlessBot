@@ -396,7 +396,10 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 			elif not game.is_turn(player):
 				report = f"It is not your turn {ctx.author.mention}"
 			else:
-				report = game.deal_current_player()
+				assert game.dealerUp is not None
+				report_params = bucks.DealReportParams(game.dealerUp, ctx.author.mention)
+				game.deal_current_player(report_params)
+				report = report_params.make_report()
 				if player.check_bust() or player.perfect():
 					bucks.write_money(
 						ctx.author, player.bet, writing=True, adding=True,

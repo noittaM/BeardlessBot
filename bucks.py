@@ -305,52 +305,31 @@ class BlackjackGame:
 		self.turn_idx %= len(self.players)
 
 
-	def deal_current_player(self) -> str:
+	def deal_current_player(self, report_params: DealReportParams) -> None:
 		"""
 		Deal the user a single card.
-
-		Returns:
-			str: The message to show the user.
-
 		"""
 		assert self.started
 		dealt = self.deal_top_card()
+		report_params.dealt_card = dealt
 		player = self.players[self.turn_idx]
 		player.hand.append(dealt)
-		self.message = (
-			f"{player.name.mention} you were dealt {BlackjackGame.card_name(dealt)},"
-			f" bringing your total to {sum(player.hand)}. "
-		)
+		report_params.new_hand = player.hand
 		if BlackjackGame.AceVal in player.hand and player.check_bust():
-			self.advance_turn()
+			report_params.ace_overflow = True
 			for i, card in enumerate(player.hand):
 				if card == BlackjackGame.AceVal:
 					player.hand[i] = 1
 					player.bet *= -1
 					break
-			self.message += (
-				"To avoid busting, your Ace will be treated as a 1."
-				f" Your new total is {sum(player.hand)}. "
-			)
-		self.message += (
-			"Your card values are {}. The dealer is"
-			" showing {}, with one card face down."
-		).format(", ".join(str(card) for card in player.hand), self.dealerUp)
 		if player.check_bust():
-			self.message += f" You busted. Game over, {player.name.mention}."
-		elif player.perfect():
+			report_params.bust = True
 			self.advance_turn()
-			self.message += (
-				f" You hit {BlackjackGame.Goal}! You win, {player.name.mention}!"
-			)
-		else:
-			self.message += (
-				" Type !hit to deal another card to yourself, or !stay"
-				f" to stop at your current total, {player.name.mention}."
-			)
-		return self.message
+		elif player.perfect():
+			report_params.perfect = True
+			self.advance_turn()
 
-	def stay_current_player(self) -> bool:
+	def stay_current_player(self) -> str:
 		"""
 		Stay the current player.
 
