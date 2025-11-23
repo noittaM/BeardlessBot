@@ -207,11 +207,21 @@ class BlackjackGame:
 	def end_round(self) -> str:
 		# If we got here, then the game has ended.
 		self.message = "Round ended, the dealer will now play\n"
+		assert self.dealerUp is not None
+		dealer_cards: list[int] = [self.dealerUp, self.dealerSum - self.dealerUp]
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
-			self.dealerSum += self.deal_top_card()
-		self.message += "The dealer has a total of {}. "
+			dealt = self.deal_top_card()
+			dealer_cards.append(dealt)
+			self.dealerSum += dealt
+
+		
+		self.message += "The dealers cards are {} ".format(", ".join(BlackjackGame.card_name(card) for card in dealer_cards))
+		self.message += f"for a total of {self.dealerSum}. "
 
 		for p in self.players:
+			if p.perfect() or p.check_bust():
+				# these have already been reported
+				continue
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
 				self.message += f"You're closer to {BlackjackGame.Goal} "
 				self.message += (
@@ -220,23 +230,20 @@ class BlackjackGame:
 				)
 			elif sum(p.hand) == self.dealerSum:
 				self.message += (
-					"That ties your sum of {}. Your bet has been returned, {}.\n"
+					f"That ties your sum of {sum(p.hand)}. Your bet has been returned, {p.name.mention}.\n"
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
 				self.message += (
-					"You have a sum of {}. The dealer busts. You win! "
-					"Your winnings have been added to your balance, {}.\n"
+					f"You have a sum of {sum(p.hand)}. The dealer busts. You win! "
+					f"Your winnings have been added to your balance, {p.name.mention}.\n"
 				)
 			else:
 				self.message += f"That's closer to {BlackjackGame.Goal} "
 				self.message += (
-					"than your sum of {}. You lose. Your loss "
-					"has been deducted from your balance, {}.\n"
+					f"than your sum of {sum(p.hand)}. You lose. Your loss "
+					f"has been deducted from your balance, {p.name.mention}.\n"
 				)
 				p.bet *= -1
-			self.message = self.message.format(
-				self.dealerSum, sum(p.hand), p.name.mention,
-			)
 			if not p.bet:
 				self.message += (
 					"Unfortunately, you bet nothing, so this was all pointless.\n"
