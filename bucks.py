@@ -354,6 +354,11 @@ class BlackjackGame:
 				return
 
 
+	def round_over(self) -> bool:
+		assert self.turn_idx <= len(self.players)
+		return self.turn_idx == len(self.players)
+
+
 	def deal_current_player(self, report_params: DealReportParams) -> None:
 		"""
 		Deal the user a single card.
