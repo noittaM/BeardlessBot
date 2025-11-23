@@ -342,11 +342,11 @@ class BlackjackGame:
 				)
 		return message
 
+
 	def advance_turn(self) -> None:
-		self.turn_idx += 1
 		while True:
+			self.turn_idx += 1
 			if self.turn_idx == len(self.players):
-				self.end_round()
 				return
 			player = self.players[self.turn_idx]
 			# skip over all players that can't play
