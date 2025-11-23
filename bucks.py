@@ -206,9 +206,10 @@ class BlackjackGame:
 
 	def end_round(self) -> str:
 		# If we got here, then the game has ended.
+		self.message = "Round ended, the dealer will now play\n"
 		while self.dealerSum < BlackjackGame.DealerSoftGoal:
 			self.dealerSum += self.deal_top_card()
-		self.message = "The dealer has a total of {}. "
+		self.message += "The dealer has a total of {}. "
 
 		for p in self.players:
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
