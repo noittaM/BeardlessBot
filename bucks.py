@@ -336,6 +336,8 @@ class BlackjackGame:
 				message += (
 					f"{p.name.mention} you hit {BlackjackGame.Goal}! You win, {p.name.mention}!"
 				)
+				write_money(p.name, p.bet, writing=True, adding=True)
+				self.advance_turn()
 			else:
 				if p.check_bust():
 					p.hand[1] = 1
