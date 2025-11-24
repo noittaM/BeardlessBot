@@ -685,6 +685,28 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 				)
 	return report.format(author.mention)
 
+def can_make_bet(user: nextcord.User | nextcord.Member, bet: str | int) -> tuple[bool, str | None]:
+	if isinstance(bet, str):
+		if bet == "all":
+			return True, None
+		else:
+			try:
+				bet_num: int = int(bet)
+			except ValueError:
+				return False, InvalidBetMsg.format(user.mention)
+	if bet_num < 0:
+		return False, InvalidBetMsg.format(user.mention)
+
+	result, bank = write_money(user, 300, writing=False, adding=False)
+	if result == MoneyFlags.Registered:
+		return True, NewUserMsg.format(user.name)
+	elif result == MoneyFlags.CommaInUsername:
+		assert isinstance(bank, str)
+		return False, bank.format(user.mention)
+	if isinstance(bank, int) and bet_num > bank:
+		return False, "You do not have enough BeardlessBucks to bet that much, {}!".format(user.mention)
+	return True, None
+
 def make_bet(
 	author: nextcord.User | nextcord.Member,
 	game: BlackjackGame,
