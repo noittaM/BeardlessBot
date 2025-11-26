@@ -562,9 +562,7 @@ def reset(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 
 	"""
 	result, bonus = write_money(target, 200, writing=True, adding=False)
-	report = bonus if result in {
-		MoneyFlags.CommaInUsername, MoneyFlags.Registered,
-	} else f"You have been reset to 200 BeardlessBucks, {target.mention}."
+	report = bonus if result == MoneyFlags.Registered else f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	assert isinstance(report, str)
 	return bb_embed("BeardlessBucks Reset", report)
 
@@ -645,6 +643,7 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 	"""
 	heads = random.randint(0, 1)
 	report = InvalidBetMsg
+	assert "," not in author.name
 	if bet == "all":
 		if not heads:
 			bet = "-all"
@@ -660,9 +659,6 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 		result, bank = write_money(author, 300, writing=False, adding=False)
 		if result == MoneyFlags.Registered:
 			report = NewUserMsg
-		elif result == MoneyFlags.CommaInUsername:
-			assert isinstance(bank, str)
-			report = bank
 		elif isinstance(bet, int) and isinstance(bank, int) and bet > bank:
 			report = (
 				"You do not have enough BeardlessBucks to bet that much, {}!"
@@ -775,6 +771,23 @@ def blackjack(
 			game = None
 	return report.format(author.mention), game
 
+
+def money_in_bank(user: nextcord.Member | nextcord.User) -> int:
+	result, bonus = write_money(
+		user, 300, writing=False, adding=False,
+	)
+	assert bonus is not None
+	match result:
+		case MoneyFlags.NotEnoughBucks:
+			assert False
+		case MoneyFlags.BalanceChanged:
+			assert False
+
+		case MoneyFlags.BalanceUnchanged:
+			return bonus
+
+		case MoneyFlags.Registered:
+			return bonus
 
 def player_in_game(
 	games: list[BlackjackGame], author: nextcord.User | nextcord.Member,
