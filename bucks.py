@@ -418,8 +418,7 @@ class BlackjackGame:
 class MoneyFlags(Enum):
 	"""Enum for additional readability in the writeMoney method."""
 
-	NotEnoughBucks = -2
-	CommaInUsername = -1
+	NotEnoughBucks = -1
 	BalanceUnchanged = 0
 	BalanceChanged = 1
 	Registered = 2
@@ -431,7 +430,7 @@ def write_money(
 	*,
 	writing: bool,
 	adding: bool,
-) -> tuple[MoneyFlags, str | int | None]:
+) -> tuple[MoneyFlags, int]:
 	"""
 	Check or modify a user's BeardlessBucks balance.
 
@@ -442,24 +441,21 @@ def write_money(
 		adding (bool): Whether to add to or overwrite member's balance
 
 	Returns:
-		tuple[MoneyFlags, str | int | None]: A tuple containing:
+		tuple[MoneyFlags, int]: A tuple containing:
 			MoneyFlags: enum representing the result of calling the method
-			str or int or None: an additional report, if necessary.
+			int: the current money in the user's bank after the operation
 
 	"""
-	if "," in member.name:
-		return MoneyFlags.CommaInUsername, CommaWarn.format(member.mention)
+	assert "," not in member.name
 	with Path("resources/money.csv").open("r", encoding="UTF-8") as csv_file:
 		for row in csv.reader(csv_file, delimiter=","):
 			if str(member.id) == row[0]:  # found member
 				if isinstance(amount, str):  # for people betting all
 					amount = -int(row[1]) if amount == "-all" else int(row[1])
-				new_bank: str | int = str(
-					int(row[1]) + amount if adding else amount,
-				)
-				if writing and row[1] != new_bank:
+				new_bank: int = int(row[1]) + amount if adding else amount
+				if writing and row[1] != str(new_bank):
 					if int(row[1]) + amount < 0:
-						return MoneyFlags.NotEnoughBucks, None
+						return MoneyFlags.NotEnoughBucks, -amount
 					new_line = ",".join((row[0], str(new_bank), str(member)))
 					result = MoneyFlags.BalanceChanged
 				else:
@@ -480,13 +476,7 @@ def write_money(
 
 	with Path("resources/money.csv").open("a", encoding="UTF-8") as f:
 		f.write(f"\r\n{member.id},300,{member}")
-	return (
-		MoneyFlags.Registered,
-		(
-			"Successfully registered. You have 300"
-			f" BeardlessBucks, {member.mention}."
-		),
-	)
+	return MoneyFlags.Registered, 300
 
 
 def register(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
@@ -501,9 +491,7 @@ def register(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 
 	"""
 	result, bonus = write_money(target, 300, writing=False, adding=False)
-	report = bonus if result in {
-		MoneyFlags.CommaInUsername, MoneyFlags.Registered,
-	} else (
+	report = bonus if result == MoneyFlags.Registered else (
 		"You are already in the system! Hooray! You"
 		f" have {bonus} BeardlessBucks, {target.mention}."
 	)
@@ -544,9 +532,7 @@ def balance(
 				f"{bal_target.mention}'s balance is {bonus} BeardlessBucks."
 			)
 		else:
-			report = str(bonus) if result in {
-				MoneyFlags.CommaInUsername, MoneyFlags.Registered,
-			} else "Error!"
+			report = str(bonus) if result == MoneyFlags.Registered else "Error!"
 	return bb_embed("BeardlessBucks Balance", report)
 
 
@@ -696,9 +682,6 @@ def can_make_bet(user: nextcord.User | nextcord.Member, bet: str | int) -> tuple
 	result, bank = write_money(user, 300, writing=False, adding=False)
 	if result == MoneyFlags.Registered:
 		return True, NewUserMsg.format(user.name)
-	elif result == MoneyFlags.CommaInUsername:
-		assert isinstance(bank, str)
-		return False, bank.format(user.mention)
 	if isinstance(bank, int) and bet_num > bank:
 		return False, "You do not have enough BeardlessBucks to bet that much, {}!".format(user.mention)
 	return True, None
@@ -712,9 +695,6 @@ def make_bet(
 	result, bank = write_money(author, 300, writing=False, adding=False)
 	if result == MoneyFlags.Registered:
 		report = NewUserMsg
-	elif result == MoneyFlags.CommaInUsername:
-		assert isinstance(bank, str)
-		report = bank
 	elif isinstance(bet, int) and isinstance(bank, int):
 		if bet > bank:
 			report = (

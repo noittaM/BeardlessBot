@@ -327,11 +327,14 @@ async def on_thread_update(
 async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	report = (
-		bucks.FinMsg.format(ctx.author.mention)
-		if bucks.player_in_game(BlackjackGames, ctx.author)
-		else bucks.flip(ctx.author, bet.lower())
-	)
+	if "," in ctx.author.name:
+		report = bucks.CommaWarn
+	else:
+		report = (
+			bucks.FinMsg.format(ctx.author.mention)
+			if bucks.player_in_game(BlackjackGames, ctx.author)
+			else bucks.flip(ctx.author, bet.lower())
+		)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Coin Flip", report))
 	return 1
 
@@ -341,12 +344,15 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	if bucks.player_in_game(BlackjackGames, ctx.author):
-		report = bucks.FinMsg.format(ctx.author.mention)
+	if "," in ctx.author.name:
+		report = bucks.CommaWarn
 	else:
-		report, game = bucks.blackjack(ctx.author, bet)
-		if game:
-			BlackjackGames.append(game)
+		if bucks.player_in_game(BlackjackGames, ctx.author):
+			report = bucks.FinMsg.format(ctx.author.mention)
+		else:
+			report, game = bucks.blackjack(ctx.author, bet)
+			if game:
+				BlackjackGames.append(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -356,6 +362,8 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 async def cmd_table(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
+	if "," in ctx.author.name:
+		report = bucks.CommaWarn
 	if bucks.player_in_game(BlackjackGames, ctx.author):
 		report = bucks.FinMsg.format(ctx.author.mention)
 	else:
@@ -370,16 +378,20 @@ async def cmd_table(ctx: misc.BotContext) -> int:
 async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	if result := bucks.player_in_game(BlackjackGames, ctx.author):
-		game, player = result
-		can_bet, report = bucks.can_make_bet(ctx.author, bet)
-		if can_bet:
-			report, bet_number = bucks.make_bet(ctx.author, game, bet)
-			report = f"Your current bet is {bet_number}\n{ctx.author.mention}"
-			player.bet = bet_number
-		assert report is not None
+	report: str | None
+	if "," in ctx.author.name:
+		report = bucks.CommaWarn
 	else:
-		report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
+		if result := bucks.player_in_game(BlackjackGames, ctx.author):
+			game, player = result
+			can_bet, report = bucks.can_make_bet(ctx.author, bet)
+			if can_bet:
+				report, bet_number = bucks.make_bet(ctx.author, game, bet)
+				report = f"Your current bet is {bet_number}\n{ctx.author.mention}"
+				player.bet = bet_number
+			assert report is not None
+		else:
+			report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -446,21 +458,24 @@ async def cmd_join(
 ) -> int:
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
-	if not (join_target := await misc.process_command_target(
-		ctx, target, BeardlessBot,
-	)):
-		return 0
-	if result := bucks.player_in_game(BlackjackGames, ctx.author):
-		report = bucks.FinMsg.format(ctx.author.mention)
-	elif result := bucks.player_in_game(BlackjackGames, join_target):
-		game, player = result
-		if game.multiplayer:
-			game.add_player(ctx.author)
-			report = "Joined {}'s blackjack game.".format(join_target.mention)
-		else:
-			report = "Can't join {}'s singleplayer blackjack game.".format(join_target.mention)
+	if "," in ctx.author.name:
+		report = bucks.CommaWarn
 	else:
-		report = "Player " + join_target.mention + "is not in a blackjack game"
+		if not (join_target := await misc.process_command_target(
+			ctx, target, BeardlessBot,
+		)):
+			return 0
+		if result := bucks.player_in_game(BlackjackGames, ctx.author):
+			report = bucks.FinMsg.format(ctx.author.mention)
+		elif result := bucks.player_in_game(BlackjackGames, join_target):
+			game, player = result
+			if game.multiplayer:
+				game.add_player(ctx.author)
+				report = "Joined {}'s blackjack game.".format(join_target.mention)
+			else:
+				report = "Can't join {}'s singleplayer blackjack game.".format(join_target.mention)
+		else:
+			report = "Player " + join_target.mention + "is not in a blackjack game"
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Join", report))
 	# if channel := misc.get_log_channel(ctx.guild):
 	# 	await channel.send(embed=logs.log_mute(
@@ -491,9 +506,6 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 					written, bonus = bucks.write_money(
 						ctx.author, player.bet, writing=True, adding=True,
 					)
-					if written == bucks.MoneyFlags.CommaInUsername:
-						assert isinstance(bonus, str)
-						report = bonus
 					if not game.multiplayer:
 						BlackjackGames.remove(game)
 					elif game.round_over():
@@ -568,7 +580,11 @@ async def cmd_dice(ctx: misc.BotContext) -> int | nextcord.Embed:
 async def cmd_reset(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	await ctx.send(embed=bucks.reset(ctx.author))
+	if "," in ctx.author.name:
+		report = bucks.CommaWarn
+	else:
+		report = bucks.reset(ctx.author)
+	await ctx.send(embed=misc.bb_embed("BeardlessBucks Reset", report))
 	return 1
 
 
@@ -910,9 +926,6 @@ async def cmd_buy(
 					"Color " + role.mention + " purchased successfully, {}!"
 				)
 				await ctx.author.add_roles(role)
-			elif result == bucks.MoneyFlags.CommaInUsername:
-				assert isinstance(bonus, str)
-				report = bonus
 			elif result == bucks.MoneyFlags.Registered:
 				report = bucks.NewUserMsg
 			else:
