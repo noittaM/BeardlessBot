@@ -536,7 +536,7 @@ def balance(
 	return bb_embed("BeardlessBucks Balance", report)
 
 
-def reset(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
+def reset(target: nextcord.User | nextcord.Member) -> str:
 	"""
 	Reset a user's Beardless balance to 200.
 
@@ -550,7 +550,7 @@ def reset(target: nextcord.User | nextcord.Member) -> nextcord.Embed:
 	result, bonus = write_money(target, 200, writing=True, adding=False)
 	report = bonus if result == MoneyFlags.Registered else f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	assert isinstance(report, str)
-	return bb_embed("BeardlessBucks Reset", report)
+	return report
 
 
 def leaderboard(
