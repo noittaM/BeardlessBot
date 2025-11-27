@@ -732,16 +732,15 @@ def blackjack(
 
 	"""
 	game = None
-	report = InvalidBetMsg
 	if bet is None:
 		game = BlackjackGame(author, multiplayer=True)
 		report = game.message
 		return report.format(author.mention), game
-	if bet != "all":
+	if isinstance(bet, str) and bet != "all":
 		try:
 			bet = int(bet)
 		except ValueError:
-			return report.format(author.mention), game
+			return InvalidBetMsg.format(author.mention), game
 	if (
 		(isinstance(bet, str) and bet == "all")
 		or (isinstance(bet, int) and bet >= 0)
