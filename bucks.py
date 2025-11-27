@@ -209,12 +209,15 @@ class BlackjackGame:
 		self.message = "Round ended, the dealer will now play\n"
 		assert self.dealerUp is not None
 		dealer_cards: list[int] = [self.dealerUp, self.dealerSum - self.dealerUp]
-		while self.dealerSum < BlackjackGame.DealerSoftGoal:
-			dealt = self.deal_top_card()
-			dealer_cards.append(dealt)
-			self.dealerSum += dealt
-
-		
+		for p in self.players:
+			if not p.perfect() and not p.check_bust():
+				# dealer should only draw if there is at least 1 player
+				# that stayed
+				while self.dealerSum < BlackjackGame.DealerSoftGoal:
+					dealt = self.deal_top_card()
+					dealer_cards.append(dealt)
+					self.dealerSum += dealt
+				break
 		self.message += "The dealers cards are {} ".format(", ".join(BlackjackGame.card_name(card) for card in dealer_cards))
 		self.message += f"for a total of {self.dealerSum}. "
 
@@ -337,7 +340,8 @@ class BlackjackGame:
 					f"{p.name.mention} you hit {BlackjackGame.Goal}! You win, {p.name.mention}!"
 				)
 				write_money(p.name, p.bet, writing=True, adding=True)
-				self.advance_turn()
+				if self.multiplayer:
+					self.advance_turn()
 			else:
 				if p.check_bust():
 					p.hand[1] = 1
@@ -744,10 +748,11 @@ def blackjack(
 	):
 		game = BlackjackGame(author, multiplayer=False)
 		report, bet = make_bet(author, game, bet)
-		player = BlackjackPlayer(author)
+		player = game.players[0]
 		player.bet = bet
 		if player.perfect():
 			write_money(author, bet, writing=True, adding=True)
+			report += game.end_round()
 			game = None
 	return report.format(author.mention), game
 
