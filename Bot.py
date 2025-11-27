@@ -328,7 +328,7 @@ async def cmd_flip(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
 	if "," in ctx.author.name:
-		report = bucks.CommaWarn
+		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		report = (
 			bucks.FinMsg.format(ctx.author.mention)
@@ -345,7 +345,7 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
 	if "," in ctx.author.name:
-		report = bucks.CommaWarn
+		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		if bucks.player_in_game(BlackjackGames, ctx.author):
 			report = bucks.FinMsg.format(ctx.author.mention)
@@ -363,7 +363,7 @@ async def cmd_table(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
 	if "," in ctx.author.name:
-		report = bucks.CommaWarn
+		report = bucks.CommaWarn.format(ctx.author.mention)
 	if bucks.player_in_game(BlackjackGames, ctx.author):
 		report = bucks.FinMsg.format(ctx.author.mention)
 	else:
@@ -380,7 +380,7 @@ async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
 		return -1
 	report: str | None
 	if "," in ctx.author.name:
-		report = bucks.CommaWarn
+		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		if result := bucks.player_in_game(BlackjackGames, ctx.author):
 			game, player = result
@@ -459,7 +459,7 @@ async def cmd_join(
 	if misc.ctx_created_thread(ctx) or not ctx.guild:
 		return -1
 	if "," in ctx.author.name:
-		report = bucks.CommaWarn
+		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		if not (join_target := await misc.process_command_target(
 			ctx, target, BeardlessBot,
@@ -581,7 +581,7 @@ async def cmd_reset(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
 	if "," in ctx.author.name:
-		report = bucks.CommaWarn
+		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
 		report = bucks.reset(ctx.author)
 	await ctx.send(embed=misc.bb_embed("BeardlessBucks Reset", report))
