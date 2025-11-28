@@ -382,16 +382,16 @@ async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
 	if "," in ctx.author.name:
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
+		report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
 		if result := bucks.player_in_game(BlackjackGames, ctx.author):
 			game, player = result
-			can_bet, report = bucks.can_make_bet(ctx.author, bet)
-			if can_bet:
-				report, bet_number = bucks.make_bet(ctx.author, game, bet)
-				report = f"Your current bet is {bet_number}\n{ctx.author.mention}"
-				player.bet = bet_number
-			assert report is not None
-		else:
-			report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
+			if game.multiplayer and not game.started:
+				can_bet, report = bucks.can_make_bet(ctx.author, bet)
+				if can_bet:
+					report, bet_number = bucks.make_bet(ctx.author, game, bet)
+					report = f"Your current bet is {bet_number}\n{ctx.author.mention}"
+					player.bet = bet_number
+				assert report is not None
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
