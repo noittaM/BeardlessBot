@@ -583,7 +583,18 @@ async def cmd_reset(ctx: misc.BotContext) -> int:
 	if "," in ctx.author.name:
 		report = bucks.CommaWarn.format(ctx.author.mention)
 	else:
-		report = bucks.reset(ctx.author)
+		game = None
+		if result := bucks.player_in_game(BlackjackGames, ctx.author):
+			game, player = result
+		if game is None:
+			report = bucks.reset(ctx.author)
+		elif game.multiplayer and not game.started:
+			player.bet = 10 # the default bet should be moved to a variable somewhere
+			
+			report = bucks.reset(ctx.author)
+			report += "Your bet has also been reset to 10."
+		else:
+			report = bucks.FinMsg.format(ctx.author.mention)
 	await ctx.send(embed=misc.bb_embed("BeardlessBucks Reset", report))
 	return 1
 
