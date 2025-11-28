@@ -356,6 +356,31 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
+@BeardlessBot.command(name="tableleave")
+async def cmd_tableleave(ctx: misc.BotContext) -> int:
+	if misc.ctx_created_thread(ctx):
+		return -1
+	if result := bucks.player_in_game(BlackjackGames, ctx.author):
+		game, player = result
+		if not game.multiplayer:
+			report = f"You can't exit a singlelpayer Blackjack Game {ctx.author.mention}\n"
+		else:
+			if len(game.players) == 1:
+				BlackjackGames.remove(game)
+				report = f"Game disbanded.\n"
+			else:
+				if player == game.owner:
+					assert game.owner == game.players[0]
+					game.players.remove(player)
+					game.owner = game.players[0]
+					report = f"You left. {game.owner.name.mention} you are now the owner of the game.\n"
+				else:
+					game.players.remove(player)
+					report = f"You left.\n"
+	else:
+		report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
+	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
+	return 1
 
 # NOTE: duplicate code
 @BeardlessBot.command(name="table")
