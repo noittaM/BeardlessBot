@@ -580,9 +580,11 @@ async def cmd_balance(ctx: misc.BotContext, *, target: str = "") -> int:
 async def cmd_leaderboard(ctx: misc.BotContext, *, target: str = "") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
-	await ctx.send(
-		embed=bucks.leaderboard(misc.get_target(ctx, target), ctx.message),
-	)
+	if "," in ctx.author.name:
+		embed = misc.bb_embed("BeardlessBot Comma Warn", bucks.CommaWarn.format(ctx.author.mention))
+	else:
+		embed = bucks.leaderboard(misc.get_target(ctx, target), ctx.message)
+	await ctx.send(embed=embed)
 	return 1
 
 

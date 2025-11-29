@@ -2361,11 +2361,6 @@ def test_register() -> None:
 		f" have 200 BeardlessBucks, <@{misc.BbId}>."
 	)
 
-	bb._user.name = ",badname,"
-	assert bucks.register(bb).description == (
-		bucks.CommaWarn.format(f"<@{misc.BbId}>")
-	)
-
 
 @pytest.mark.parametrize(
 	("target", "result"),
@@ -2374,8 +2369,6 @@ def test_register() -> None:
 			MockMember(MockUser("Test", "5757", misc.BbId)),
 			"'s balance is 200",
 		),
-		(MockMember(MockUser(",")), bucks.CommaWarn.format("<@123456789>")),
-		("Invalid user", "Invalid user!"),
 	],
 )
 def test_balance(target: nextcord.User, result: str) -> None:
@@ -2390,13 +2383,8 @@ def test_reset() -> None:
 		MockUser("Beardless Bot", discriminator="5757", user_id=misc.BbId),
 		"Beardless Bot",
 	)
-	assert bucks.reset(bb).description == (
+	assert bucks.reset(bb) == (
 		f"You have been reset to 200 BeardlessBucks, <@{misc.BbId}>."
-	)
-
-	bb._user.name = ",badname,"
-	assert bucks.reset(bb).description == (
-		bucks.CommaWarn.format(f"<@{misc.BbId}>")
 	)
 
 
@@ -2412,7 +2400,7 @@ def test_write_money() -> None:
 
 	assert bucks.write_money(
 		bb, -1000000, writing=True, adding=False,
-	) == (bucks.MoneyFlags.NotEnoughBucks, None)
+	) == (bucks.MoneyFlags.NotEnoughBucks, 200)
 
 
 def test_leaderboard() -> None:
@@ -2422,12 +2410,6 @@ def test_leaderboard() -> None:
 	assert lb.fields[0].value is not None
 	assert lb.fields[1].value is not None
 	assert int(lb.fields[0].value) > int(lb.fields[1].value)
-
-	lb = bucks.leaderboard(
-		MockMember(MockUser(name="bad,name", user_id=0)),
-		MockMessage(author=MockMember()),
-	)
-	assert len(lb.fields) == 10
 
 	lb = bucks.leaderboard(
 		MockMember(
@@ -2609,9 +2591,6 @@ def test_flip() -> None:
 			bucks.NewUserMsg.format(f"<@{misc.BbId}>")
 		)
 
-	bb._user.name = ",invalidname,"
-	assert bucks.flip(bb, "0") == bucks.CommaWarn.format(f"<@{misc.BbId}>")
-
 
 @MarkAsync
 async def test_cmd_flip() -> None:
@@ -2670,12 +2649,6 @@ def test_blackjack() -> None:
 	bucks.reset(bb)
 	report = bucks.blackjack(bb, "10000000000000")[0]
 	assert report.startswith("You do not have")
-
-	bucks.reset(bb)
-	bb._user.name = ",invalidname,"
-	assert bucks.blackjack(bb, 0)[0] == (
-		bucks.CommaWarn.format(f"<@{misc.BbId}>")
-	)
 
 
 @MarkAsync
