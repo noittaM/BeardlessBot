@@ -962,6 +962,7 @@ def get_last_numeric_char(duration: str) -> int:
 			return i
 	return len(duration)
 
+# TODO: merge with process_mute_target
 async def process_command_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
@@ -982,7 +983,7 @@ async def process_command_target(
 	return command_target
 
 
-
+# TODO: merge with process_command_target
 async def process_mute_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,
 ) -> nextcord.Member | None:
