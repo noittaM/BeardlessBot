@@ -166,9 +166,11 @@ class BlackjackGame:
 
 	AceVal = 11
 	DealerSoftGoal = 17
-	FaceVal = 10
+	King = 10
+	Queen = 10
+	Jack = 10
 	Goal = 21
-	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, FaceVal, FaceVal, FaceVal, AceVal)
+	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, King, Queen, Jack, AceVal)
 
 	def __init__(
 		self,
@@ -190,7 +192,7 @@ class BlackjackGame:
 		self.owner = BlackjackPlayer(owner);
 		self.players: list[BlackjackPlayer] = [self.owner]
 		self.deck: list[int] = []
-		self.deck.extend(BlackjackGame.CardVals * 4)
+		self.deck.extend(BlackjackGame.CardVals * 4 * 4) # 4 decks
 		# FIXME: dealerUp should NEVER be None
 		# and dealerSum should NEVER be 0
 		self.dealerUp: int | None = None
@@ -276,13 +278,19 @@ class BlackjackGame:
 			str: A human-friendly card name.
 
 		"""
-		if card == BlackjackGame.FaceVal:
-			return "a " + random.choice(
-				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
-			)
-		if card == BlackjackGame.AceVal:
-			return "an Ace"
-		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
+		match card:
+			case BlackjackGame.King:
+				return "a King"
+			case BlackjackGame.Queen:
+				return "a Queen"
+			case BlackjackGame.Jack:
+				return "a Jack"
+			case BlackjackGame.AceVal:
+				return "an Ace"
+			case 8:
+				return "an 8"
+			case _:
+				return "a " + str(card)
 
 
 	def ready_to_start(self) -> bool:
