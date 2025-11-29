@@ -383,8 +383,8 @@ async def cmd_tableleave(ctx: misc.BotContext) -> int:
 	return 1
 
 # NOTE: duplicate code
-@BeardlessBot.command(name="table")
-async def cmd_table(ctx: misc.BotContext) -> int:
+@BeardlessBot.command(name="tablenew")
+async def cmd_tablenew(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
 	if "," in ctx.author.name:
@@ -399,8 +399,8 @@ async def cmd_table(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="bet")
-async def cmd_bet(ctx: misc.BotContext, bet: str = "10") -> int:
+@BeardlessBot.command(name="tablebet")
+async def cmd_tablebet(ctx: misc.BotContext, bet: str = "10") -> int:
 	if misc.ctx_created_thread(ctx):
 		return -1
 	report: str | None
@@ -476,8 +476,8 @@ async def cmd_tablestart(ctx: misc.BotContext) -> int:
 	return 1
 
 
-@BeardlessBot.command(name="jointable")
-async def cmd_join(
+@BeardlessBot.command(name="tablejoin")
+async def cmd_tablejoin(
 	ctx: misc.BotContext,
 	target: str | None = None,
 ) -> int:
