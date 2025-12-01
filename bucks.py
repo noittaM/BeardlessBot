@@ -166,11 +166,9 @@ class BlackjackGame:
 
 	AceVal = 11
 	DealerSoftGoal = 17
-	King = 10
-	Queen = 10
-	Jack = 10
+	FaceVal = 10
 	Goal = 21
-	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, King, Queen, Jack, AceVal)
+	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, FaceVal, FaceVal, FaceVal, AceVal)
 	NumOfDecksInMatch = 4
 
 	def __init__(
@@ -279,19 +277,15 @@ class BlackjackGame:
 			str: A human-friendly card name.
 
 		"""
-		match card:
-			case BlackjackGame.King:
-				return "a King"
-			case BlackjackGame.Queen:
-				return "a Queen"
-			case BlackjackGame.Jack:
-				return "a Jack"
-			case BlackjackGame.AceVal:
-				return "an Ace"
-			case 8:
-				return "an 8"
-			case _:
-				return "a " + str(card)
+		if card == BlackjackGame.FaceVal:
+			# TODO: this can cause us to draw more of a single face card would
+			# exist in the card pool in a real game. changing this is complex.
+			return "a " + random.choice(
+				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
+			)
+		if card == BlackjackGame.AceVal:
+			return "an Ace"
+		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
 
 	def ready_to_start(self) -> bool:
