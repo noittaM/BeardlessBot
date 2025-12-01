@@ -467,7 +467,7 @@ def write_money(
 				new_bank: int = int(row[1]) + amount if adding else amount
 				if writing and row[1] != str(new_bank):
 					if int(row[1]) + amount < 0:
-						return MoneyFlags.NotEnoughBucks, -amount
+						return MoneyFlags.NotEnoughBucks, int(row[1])
 					new_line = ",".join((row[0], str(new_bank), str(member)))
 					result = MoneyFlags.BalanceChanged
 				else:
