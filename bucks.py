@@ -171,6 +171,7 @@ class BlackjackGame:
 	Jack = 10
 	Goal = 21
 	CardVals = (2, 3, 4, 5, 6, 7, 8, 9, 10, King, Queen, Jack, AceVal)
+	NumOfDecksInMatch = 4
 
 	def __init__(
 		self,

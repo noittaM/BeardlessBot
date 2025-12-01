@@ -2795,13 +2795,14 @@ def test_blackjack_deal_top_card_pops_top_card() -> None:
 		player.bet = 10
 		# Two cards dealt to player, two to dealer
 		# Dealer dealt 2, 3; player dealt 4, 5
-		assert len(game.deck) == 48
+		starting_deck_count = 13 * 4 * bucks.BlackjackGame.NumOfDecksInMatch
+		assert len(game.deck) == starting_deck_count - 4
 		assert game.dealerUp == 2
 		assert game.dealerSum == 5
 		assert sum(player.hand) == 9
 		# Next card should be a 6
 		assert game.deal_top_card() == 6
-		assert len(game.deck) == 47
+		assert len(game.deck) == starting_deck_count - 5
 
 
 def test_blackjack_card_name() -> None:
