@@ -205,22 +205,37 @@ class BlackjackGame:
 			self.message = "Multiplayer Blackjack game created!\n"
 
 
-	def end_round(self) -> str:
-		# If we got here, then the game has ended.
-		self.message = "Round ended, the dealer will now play\n"
+	def dealer_draw(self) -> list[int]:
 		assert self.dealerUp is not None
 		dealer_cards: list[int] = [self.dealerUp, self.dealerSum - self.dealerUp]
+		while True:
+			if self.dealerSum > BlackjackGame.DealerSoftGoal:
+				if BlackjackGame.AceVal in dealer_cards:
+					self.dealerSum -= 10
+					dealer_cards[dealer_cards.index(BlackjackGame.AceVal)] = 1
+				else:
+					return dealer_cards
+			if self.dealerSum == BlackjackGame.DealerSoftGoal:
+				return dealer_cards
+			dealt = self.deal_top_card()
+			dealer_cards.append(dealt)
+			self.dealerSum += dealt
+
+
+	def end_round(self) -> str:
+		if self.multiplayer:
+			self.message = "Round ended, the dealer will now play\n"
+		assert self.dealerUp is not None
 		for p in self.players:
 			if not p.perfect() and not p.check_bust():
-				# dealer should only draw if there is at least 1 player
-				# that stayed
-				while self.dealerSum < BlackjackGame.DealerSoftGoal:
-					dealt = self.deal_top_card()
-					dealer_cards.append(dealt)
-					self.dealerSum += dealt
+				# dealer should only draw if there is
+				# at least 1 player that stayed
+				dealer_cards: list[int] = self.dealer_draw()
+				self.message += "The dealer's cards are {} ".format(
+					", ".join(BlackjackGame.card_name(card) for card in dealer_cards)
+				)
+				self.message += f"for a total of {self.dealerSum}. "
 				break
-		self.message += "The dealers cards are {} ".format(", ".join(BlackjackGame.card_name(card) for card in dealer_cards))
-		self.message += f"for a total of {self.dealerSum}. "
 
 		for p in self.players:
 			if p.perfect() or p.check_bust():
@@ -229,8 +244,8 @@ class BlackjackGame:
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
 				self.message += f"You're closer to {BlackjackGame.Goal} "
 				self.message += (
-					"with a sum of {}. You win! Your winnings "
-					"have been added to your balance, {}.\n"
+					f"with a sum of {sum(p.hand)}. You win! Your winnings "
+					f"have been added to your balance, {p.name.mention}.\n"
 				)
 			elif sum(p.hand) == self.dealerSum:
 				self.message += (
@@ -242,8 +257,8 @@ class BlackjackGame:
 					f"Your winnings have been added to your balance, {p.name.mention}.\n"
 				)
 			else:
-				self.message += f"That's closer to {BlackjackGame.Goal} "
 				self.message += (
+					f"That's closer to {BlackjackGame.Goal} "
 					f"than your sum of {sum(p.hand)}. You lose. Your loss "
 					f"has been deducted from your balance, {p.name.mention}.\n"
 				)
@@ -313,6 +328,66 @@ class BlackjackGame:
 		return self.deck.pop(random.randint(0, len(self.deck) - 1))
 
 
+	def _deal_cards(self) -> None:
+		self.dealerUp = self.deal_top_card()
+		self.dealerSum = self.dealerUp + self.deal_top_card()
+		for p in self.players:
+			p.hand = []
+			p.hand.append(self.deal_top_card())
+			p.hand.append(self.deal_top_card())
+
+	def _force_end_round(self) -> None:
+		self.turn_idx == len(self.players)
+
+	def _start_game_blackjack(self) -> str:
+		message = "The dealer blackjacked!\n"
+		for p in self.players:
+			if p.perfect():
+				message += (
+					f"{p.name.mention} you tied with the dealer, your bet is returned."
+				)
+			else:
+				message += (
+					f"{p.name.mention} you did not blackjack, you lose."
+				)
+				write_money(p.name, -p.bet, writing=True, adding=True)
+		self._force_end_round()
+		message += "\nRound ended."
+		return message
+
+	def _start_game_regular(self) -> str:
+		message = (
+			f"The dealer is showing {self.dealerUp}, "
+			"with one card face down. "
+		)
+		for p in self.players:
+			message += (
+				f"{p.name.mention} your starting hand consists of "
+				f"{BlackjackGame.card_name(p.hand[0])} "
+				f"and {BlackjackGame.card_name(p.hand[1])}. "
+				f"Your total is {sum(p.hand)}. "
+			)
+			if p.perfect():
+				message += (
+					f"{p.name.mention} you hit {BlackjackGame.Goal}! You win!"
+				)
+				write_money(p.name, p.bet, writing=True, adding=True)
+				if self.multiplayer:
+					self.advance_turn()
+			elif p.check_bust(): # only happens if you start with 2 aces
+				p.hand[1] = 1
+				p.bet *= -1
+				message = (
+					"Your starting hand consists of two Aces. "
+					"One of them will act as a 1. Your total is 12. "
+				)
+		message += (
+			f"{self.players[self.turn_idx].name.mention} it is your turn!\n"
+			"Type !hit to deal another card to yourself, "
+			"or !stay to stop at your current total."
+		)
+		return message
+
 	def start_game(self) -> str:
 		"""
 		Deal the user(s) a starting hand of 2 cards.
@@ -322,42 +397,10 @@ class BlackjackGame:
 
 		"""
 		self.started = True
-		self.dealerUp = self.deal_top_card()
-		self.dealerSum = self.dealerUp + self.deal_top_card()
-		message: str = (
-			f"The dealer is showing {self.dealerUp},"
-			" with one card face down. "
-		)
-		for p in self.players:
-			p.hand = []
-			p.hand.append(self.deal_top_card())
-			p.hand.append(self.deal_top_card())
-			message += (
-				f"{p.name.mention} your starting hand consists of"
-				f" {BlackjackGame.card_name(p.hand[0])}"
-				f" and {BlackjackGame.card_name(p.hand[1])}."
-				f" Your total is {sum(p.hand)}. "
-			)
-			if p.perfect():
-				message += (
-					f"{p.name.mention} you hit {BlackjackGame.Goal}! You win, {p.name.mention}!"
-				)
-				write_money(p.name, p.bet, writing=True, adding=True)
-				if self.multiplayer:
-					self.advance_turn()
-			else:
-				if p.check_bust():
-					p.hand[1] = 1
-					p.bet *= -1
-					message = (
-						"Your starting hand consists of two Aces."
-						" One of them will act as a 1. Your total is 12. "
-					)
-				message += (
-					"Type !hit to deal another card to yourself, or !stay"
-					f" to stop at your current total, {p.name.mention}."
-				)
-		return message
+		self._deal_cards()
+		if self.dealerSum == BlackjackGame.Goal:
+			return self._start_game_blackjack()
+		return self._start_game_regular()
 
 
 	def advance_turn(self) -> None:
