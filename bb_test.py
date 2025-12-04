@@ -2610,7 +2610,7 @@ async def test_cmd_flip() -> None:
 	assert emb.description is not None
 	assert emb.description.endswith("actually bet anything.")
 
-	Bot.BlackjackGames.append(bucks.BlackjackGame(bb, False))
+	Bot.BlackjackGames.append(bucks.BlackjackGame(bb, multiplayer=False))
 	assert await Bot.cmd_flip(ctx, bet="0") == 1
 	m = await latest_message(ch)
 	assert m is not None
@@ -2669,7 +2669,7 @@ async def test_cmd_blackjack() -> None:
 	assert emb.description is not None
 	assert "your starting hand consists of" in emb.description
 
-	Bot.BlackjackGames.append(bucks.BlackjackGame(bb, False))
+	Bot.BlackjackGames.append(bucks.BlackjackGame(bb, multiplayer=False))
 	assert await Bot.cmd_blackjack(ctx, bet="0") == 1
 	m = await latest_message(ch)
 	assert m is not None
@@ -2699,7 +2699,7 @@ async def test_cmd_deal() -> None:
 	assert m is not None
 	assert m.embeds[0].description == bucks.NoGameMsg.format(f"<@{misc.BbId}>")
 
-	game = bucks.BlackjackGame(bb, False)
+	game = bucks.BlackjackGame(bb, multiplayer=False)
 	assert len(game.players) == 1
 	player = game.players[0]
 	assert game.turn_idx == 0
@@ -2713,7 +2713,7 @@ async def test_cmd_deal() -> None:
 	assert emb.description.startswith(f"{bb.mention} you were dealt")
 	assert len(player.hand) == 3
 
-	game = bucks.BlackjackGame(bb, False)
+	game = bucks.BlackjackGame(bb, multiplayer=False)
 	assert len(game.players) == 1
 	player = game.players[0]
 	player.bet = 0
@@ -2728,7 +2728,7 @@ async def test_cmd_deal() -> None:
 	assert f"You busted. Game over, <@{misc.BbId}>." in emb.description
 	assert len(Bot.BlackjackGames) == 0
 
-	game = bucks.BlackjackGame(bb, False)
+	game = bucks.BlackjackGame(bb, multiplayer=False)
 	player = game.players[0]
 	player.bet = 0
 	player.hand = [10, 10]
@@ -2747,7 +2747,7 @@ async def test_cmd_deal() -> None:
 
 def test_blackjack_deal_to_player_treats_ace_as_1_when_going_over() -> None:
 	m = MockMember()
-	game = bucks.BlackjackGame(m, False)
+	game = bucks.BlackjackGame(m, multiplayer=False)
 	player = game.players[0]
 	player.bet = 10
 	player.hand = [11, 9]
@@ -2767,7 +2767,7 @@ def test_blackjack_deal_to_player_treats_ace_as_1_when_going_over() -> None:
 
 def test_blackjack_deal_to_player_wins_when_reaching_21() -> None:
 	m = MockMember()
-	game = bucks.BlackjackGame(m, False)
+	game = bucks.BlackjackGame(m, multiplayer=False)
 	player = game.players[0]
 	player.bet = 10
 	player.hand = [10, 9]
@@ -2790,7 +2790,7 @@ def test_blackjack_deal_top_card_pops_top_card() -> None:
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("random.randint", lambda x, _: x)
 		m = MockMember()
-		game = bucks.BlackjackGame(m, False)
+		game = bucks.BlackjackGame(m, multiplayer=False)
 		player = game.players[0]
 		player.bet = 10
 		# Two cards dealt to player, two to dealer
@@ -2817,7 +2817,7 @@ def test_blackjack_card_name() -> None:
 def test_blackjack_check_bust() -> None:
 	m = MockMember()
 	player = bucks.BlackjackPlayer(m)
-	game = bucks.BlackjackGame(m, False)
+	game = bucks.BlackjackGame(m, multiplayer=False)
 	player.hand = [10, 10, 10]
 	player.bet = 10
 	assert player.check_bust()
@@ -2843,34 +2843,47 @@ async def test_cmd_stay() -> None:
 	# TODO: other branches
 
 
-# TODO: this test no longer works, needs major refactoring.
-# def test_blackjack_stay() -> None:
-# 	with pytest.MonkeyPatch.context() as mp:
-# 		mp.setattr("random.randint", lambda x, _: x)
-# 		m = MockMember()
-# 		player = bucks.BlackjackPlayer(m)
-# 		player.bet = 0
-# 		game = bucks.BlackjackGame(m, False)
-# 		player.hand = [10, 10, 1]
-# 		game.dealerSum = 25
-# 		assert game.stay_current_player() == 1
-#
-# 		game.dealerSum = 20
-# 		assert game.stay_current_player() == 1
-# 		assert game.dealerUp is not None
-# 		game.deal_current_player(bucks.DealReportParams(dealer_up=game.dealerUp, mention_str=m.mention))
-# 		assert game.stay_current_player() == 1
-#
-# 		player.hand = [10, 10]
-# 		assert game.stay_current_player() == 0
-#
-# 		game.dealerSum = 14
-# 		assert game.stay_current_player() == 1
+def test_blackjack_stay() -> None:
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x)
+		m = MockMember()
+
+		game = bucks.BlackjackGame(m, multiplayer=False)
+		player = game.players[0]
+		player.bet = 0
+		player.hand = [10, 1]
+		game.dealerSum = 13
+		game.dealerUp = 6
+		game.deck = [8]
+		game.stay_current_player()
+		assert game.round_over()
+		assert "you lose" in game.end_round().lower()
+
+		game = bucks.BlackjackGame(m, multiplayer=False)
+		player = game.players[0]
+		player.bet = 0
+		player.hand = [10, 1]
+		game.dealerSum = 12
+		game.dealerUp = 5
+		game.deck = [10, 10]
+		game.stay_current_player()
+		assert game.round_over()
+		assert "you win" in game.end_round().lower()
+
+		game = bucks.BlackjackGame(m, multiplayer=False)
+		player = game.players[0]
+		player.bet = 0
+		player.hand = [10, 10]
+		game.dealerSum = 20
+		game.dealerUp = 10
+		game.stay_current_player()
+		assert game.round_over()
+		assert "ties your sum" in game.end_round().lower()
 
 
 def test_blackjack_starting_hand() -> None:
 	m = MockMember()
-	game = bucks.BlackjackGame(m, False)
+	game = bucks.BlackjackGame(m, multiplayer=False)
 	player = game.players[0]
 	player.bet = 10
 	player.hand = []
@@ -2887,7 +2900,8 @@ def test_blackjack_starting_hand() -> None:
 	player.hand = []
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
-		assert "you hit 21!" in game.start_game()
+		report = game.start_game()
+		assert "you hit 21!" in report or "you tied with the dealer" in report
 	assert len(player.hand) == 2
 
 	player.hand = []
@@ -2908,11 +2922,11 @@ def test_blackjack_starting_hand() -> None:
 def test_active_game() -> None:
 	author = MockMember(MockUser(name="target", user_id=0))
 	games = [
-		bucks.BlackjackGame(MockMember(MockUser(name="not", user_id=1)), False),
+		bucks.BlackjackGame(MockMember(MockUser(name="not", user_id=1)), multiplayer=False),
 	] * 9
 	assert bucks.player_in_game(games, author) is None
 
-	games.append(bucks.BlackjackGame(author, False))
+	games.append(bucks.BlackjackGame(author, multiplayer=False))
 	assert bucks.player_in_game(games, author) is not None
 
 

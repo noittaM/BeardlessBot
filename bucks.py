@@ -215,7 +215,7 @@ class BlackjackGame:
 					dealer_cards[dealer_cards.index(BlackjackGame.AceVal)] = 1
 				else:
 					return dealer_cards
-			if self.dealerSum == BlackjackGame.DealerSoftGoal:
+			elif self.dealerSum == BlackjackGame.DealerSoftGoal:
 				return dealer_cards
 			dealt = self.deal_top_card()
 			dealer_cards.append(dealt)
@@ -342,13 +342,14 @@ class BlackjackGame:
 	def _start_game_blackjack(self) -> str:
 		message = "The dealer blackjacked!\n"
 		for p in self.players:
+			message += f"{p.name.mention} your starting hand consists of {p.hand[0]} and {p.hand[1]}. "
 			if p.perfect():
 				message += (
-					f"{p.name.mention} you tied with the dealer, your bet is returned."
+					f"You tied with the dealer, your bet is returned."
 				)
 			else:
 				message += (
-					f"{p.name.mention} you did not blackjack, you lose."
+					f"You did not blackjack, you lose."
 				)
 				write_money(p.name, -p.bet, writing=True, adding=True)
 		self._force_end_round()
@@ -381,11 +382,18 @@ class BlackjackGame:
 					"Your starting hand consists of two Aces. "
 					"One of them will act as a 1. Your total is 12. "
 				)
-		message += (
-			f"{self.players[self.turn_idx].name.mention} it is your turn!\n"
-			"Type !hit to deal another card to yourself, "
-			"or !stay to stop at your current total."
-		)
+		if self.multiplayer:
+			message += (
+				f"{self.players[self.turn_idx].name.mention} it is your turn\n"
+				"Type !hit to deal another card to yourself, "
+				"or !stay to stop at your current total."
+			)
+		else:
+			message += (
+				"Type !hit to deal another card to yourself, "
+				"or !stay to stop at your current total, "
+				f"{self.players[self.turn_idx].name.mention}."
+			)
 		return message
 
 	def start_game(self) -> str:
