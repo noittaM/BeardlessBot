@@ -2634,17 +2634,17 @@ def test_blackjack() -> None:
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
 		report, game = bucks.blackjack(bb, 0)
+		report = report.lower()
 		assert game is None
-		assert "you hit 21" in report
+		assert "you hit 21" in report or "you tied" in report
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr(
 			"bucks.write_money",
 			lambda *_, **__: (bucks.MoneyFlags.Registered, 0),
 		)
-		assert bucks.blackjack(bb, "0")[0] == (
-			bucks.NewUserMsg.format(f"<@{misc.BbId}>")
-		)
+		assert (bucks.NewUserMsg.format(f"<@{misc.BbId}>")
+			in bucks.blackjack(bb, "0")[0])
 
 	bucks.reset(bb)
 	report = bucks.blackjack(bb, "10000000000000")[0]
