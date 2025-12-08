@@ -349,9 +349,14 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	elif bucks.player_in_game(BlackjackGames, ctx.author):
 		report = bucks.FinMsg.format(ctx.author.mention)
 	else:
-		report, game = bucks.blackjack(ctx.author, bet)
-		if game and not game.round_over():
-			BlackjackGames.append(game)
+		can_bet, bet_report = bucks.can_make_bet(ctx.author, bet)
+		if not can_bet:
+			assert bet_report is not None
+			report = bet_report
+		else:
+			report, game = bucks.blackjack(ctx.author, bet)
+			if game and not game.round_over():
+				BlackjackGames.append(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
