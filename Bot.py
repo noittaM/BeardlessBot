@@ -458,8 +458,6 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 					)
 					if not game.multiplayer:
 						BlackjackGames.remove(game)
-					elif game.round_over():
-						report += f"\n{game.end_round()}"
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -539,7 +537,6 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 					_ = bucks.write_money(
 						ctx.author, player.bet, writing=True, adding=True,
 					)
-					report += f"\n{game.end_round()}"
 					if not game.multiplayer:
 						BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))

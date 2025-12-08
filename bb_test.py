@@ -2857,7 +2857,7 @@ def test_blackjack_stay() -> None:
 		game.deck = [8]
 		game.stay_current_player()
 		assert game.round_over()
-		assert "you lose" in game.end_round().lower()
+		assert "you lose" in game._end_round().lower()
 
 		game = bucks.BlackjackGame(m, multiplayer=False)
 		player = game.players[0]
@@ -2868,7 +2868,7 @@ def test_blackjack_stay() -> None:
 		game.deck = [10, 10]
 		game.stay_current_player()
 		assert game.round_over()
-		assert "you win" in game.end_round().lower()
+		assert "you win" in game._end_round().lower()
 
 		game = bucks.BlackjackGame(m, multiplayer=False)
 		player = game.players[0]
@@ -2878,7 +2878,7 @@ def test_blackjack_stay() -> None:
 		game.dealerUp = 10
 		game.stay_current_player()
 		assert game.round_over()
-		assert "ties your sum" in game.end_round().lower()
+		assert "ties your sum" in game._end_round().lower()
 
 
 def test_blackjack_starting_hand() -> None:

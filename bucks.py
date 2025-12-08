@@ -95,6 +95,7 @@ class DealReportParams:
 
 
 	def make_report(self) -> str:
+		game_over: bool = False
 		report = (
 			f"{self.mention_str} you were dealt {BlackjackGame.card_name(self.dealt_card)},"
 			f" bringing your total to "
@@ -112,15 +113,17 @@ class DealReportParams:
 				" showing {}, with one card face down."
 			).format(", ".join(str(card) for card in self.new_hand), self.dealer_up)
 		if self.bust:
-			report += f" You busted. Game over, {self.mention_str}."
+			report += f" You busted. Game over."
+			game_over = True
 		if self.perfect:
 			report += (
-				f" You hit {BlackjackGame.Goal}! You win, {self.mention_str}!"
+				f" You hit {BlackjackGame.Goal}! You win!"
 			)
-		else:
+			game_over = True
+		elif not game_over:
 			report += (
 				" Type !hit to deal another card to yourself, or !stay"
-				f" to stop at your current total, {self.mention_str}."
+				f" to stop at your current total."
 			)
 		return report
 
@@ -222,10 +225,13 @@ class BlackjackGame:
 			self.dealerSum += dealt
 
 
-	def end_round(self) -> str:
+	def _end_round(self) -> str:
+		assert self.dealerUp is not None
+		assert self.dealerSum != 0
 		if self.multiplayer:
 			self.message = "Round ended, the dealer will now play\n"
-		assert self.dealerUp is not None
+		else:
+			self.message = "The dealer will now play\n"
 		for p in self.players:
 			if not p.perfect() and not p.check_bust():
 				# dealer should only draw if there is
@@ -359,18 +365,17 @@ class BlackjackGame:
 	def _start_game_regular(self) -> str:
 		message = (
 			f"The dealer is showing {self.dealerUp}, "
-			"with one card face down. "
+			"with one card face down.\n"
 		)
 		for p in self.players:
 			message += (
 				f"{p.name.mention} your starting hand consists of "
 				f"{BlackjackGame.card_name(p.hand[0])} "
 				f"and {BlackjackGame.card_name(p.hand[1])}. "
-				f"Your total is {sum(p.hand)}. "
 			)
 			if p.perfect():
 				message += (
-					f"{p.name.mention} you hit {BlackjackGame.Goal}! You win!"
+					f"you hit {BlackjackGame.Goal}! You win!\n"
 				)
 				write_money(p.name, p.bet, writing=True, adding=True)
 				if self.multiplayer:
@@ -379,21 +384,17 @@ class BlackjackGame:
 				p.hand[1] = 1
 				p.bet *= -1
 				message = (
-					"Your starting hand consists of two Aces. "
-					"One of them will act as a 1. Your total is 12. "
+					f"{p.name.mention} your starting hand consists of two Aces. "
+					"One of them will act as a 1. Your total is 12.\n"
 				)
+			else:
+				message += f"Your total is {sum(p.hand)}.\n"
 		if self.multiplayer:
-			message += (
-				f"{self.players[self.turn_idx].name.mention} it is your turn\n"
-				"Type !hit to deal another card to yourself, "
-				"or !stay to stop at your current total."
-			)
-		else:
-			message += (
-				"Type !hit to deal another card to yourself, "
-				"or !stay to stop at your current total, "
-				f"{self.players[self.turn_idx].name.mention}."
-			)
+			message += f"\n{self.players[self.turn_idx].name.mention} it is your turn\n"
+		message += (
+			"Type !hit to deal another card to yourself, "
+			"or !stay to stop at your current total."
+		)
 		return message
 
 	def start_game(self) -> str:
@@ -463,6 +464,8 @@ class BlackjackGame:
 		"""
 		self.message = f"{self.players[self.turn_idx].name.mention} you stayed."
 		self.advance_turn()
+		if self.round_over():
+			self._end_round()
 		return self.message
 
 
@@ -805,7 +808,7 @@ def blackjack(
 		player.bet = bet
 		if player.perfect():
 			write_money(author, bet, writing=True, adding=True)
-			report += game.end_round()
+			report += game._end_round()
 			game = None
 	return report.format(author.mention), game
 
