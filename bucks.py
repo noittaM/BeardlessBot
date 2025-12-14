@@ -41,6 +41,8 @@ InvalidBetMsg = (
 	" to 0, or enter \"all\" to bet your whole balance, {}."
 )
 
+WinMsg = "You win! Your winnings have been added to your balance, {}."
+LoseMsg = "You lose. Your losses have been deducted from your balance, {}."
 
 class BlackjackPlayer:
 	def __init__(self, name: nextcord.User | nextcord.Member):
@@ -117,7 +119,7 @@ class DealReportParams:
 			game_over = True
 		if self.perfect:
 			report += (
-				f" You hit {BlackjackGame.Goal}! You win!"
+				f" You hit {BlackjackGame.Goal}! {WinMsg.format(self.mention_str)}\n"
 			)
 			game_over = True
 		elif not game_over:
@@ -250,8 +252,8 @@ class BlackjackGame:
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
 				self.message += f"You're closer to {BlackjackGame.Goal} "
 				self.message += (
-					f"with a sum of {sum(p.hand)}. You win! Your winnings "
-					f"have been added to your balance, {p.name.mention}.\n"
+					f"with a sum of {sum(p.hand)}. "
+					f"{WinMsg.format(p.name.mention)}"
 				)
 			elif sum(p.hand) == self.dealerSum:
 				self.message += (
@@ -259,14 +261,14 @@ class BlackjackGame:
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
 				self.message += (
-					f"You have a sum of {sum(p.hand)}. The dealer busts. You win! "
-					f"Your winnings have been added to your balance, {p.name.mention}.\n"
+					f"You have a sum of {sum(p.hand)}. The dealer busts. "
+					f"{WinMsg.format(p.name.mention)}"
 				)
 			else:
 				self.message += (
 					f"That's closer to {BlackjackGame.Goal} "
-					f"than your sum of {sum(p.hand)}. You lose. Your loss "
-					f"has been deducted from your balance, {p.name.mention}.\n"
+					f"than your sum of {sum(p.hand)}.\n"
+					f"{LoseMsg.format(p.name.mention)}"
 				)
 				p.bet *= -1
 			if not p.bet:
@@ -375,7 +377,7 @@ class BlackjackGame:
 			)
 			if p.perfect():
 				message += (
-					f"you hit {BlackjackGame.Goal}! You win!\n"
+					f"you hit {BlackjackGame.Goal}! {WinMsg.format(p.name.mention)}\n"
 				)
 				write_money(p.name, p.bet, writing=True, adding=True)
 				if self.multiplayer:
@@ -462,7 +464,7 @@ class BlackjackGame:
 			bool: the round has ended.
 
 		"""
-		self.message = f"{self.players[self.turn_idx].name.mention} you stayed."
+		self.message = f"{self.players[self.turn_idx].name.mention} you stayed.\n"
 		self.advance_turn()
 		if self.round_over():
 			self._end_round()
@@ -714,16 +716,10 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 			if isinstance(bet, int) and not heads:
 				bet *= -1
 			result = write_money(author, bet, writing=True, adding=True)[0]
-			report = (
-				"Heads! You win! Your winnings have"
-				" been added to your balance, {}."
-			) if heads else (
-				"Tails! You lose! Your losses have been"
-				" deducted from your balance, {}."
-			)
+			report = f"Heads! {WinMsg}" if heads else f"Tails! {LoseMsg}"
 			if result == MoneyFlags.BalanceUnchanged:
 				report += (
-					" Or, they would have been, if"
+					"Or, they would have been, if"
 					" you had actually bet anything."
 				)
 	return report.format(author.mention)
