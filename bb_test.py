@@ -2550,7 +2550,7 @@ def test_flip() -> None:
 		mp.setattr("random.randint", lambda *_: 0)
 		assert bucks.flip(bb, "all") == (
 			"Tails! You lose! Your losses have been"
-			f" deducted from your balance, <@{misc.BbId}>."
+			f" deducted from your balance, <@{misc.BbId}>.\n"
 		)
 	msg = bucks.balance(bb, MockMessage("!bal", bb))
 	assert isinstance(msg.description, str)
@@ -2569,7 +2569,7 @@ def test_flip() -> None:
 		mp.setattr("random.randint", lambda *_: 1)
 		assert bucks.flip(bb, "all") == (
 			"Heads! You win! Your winnings have been"
-			f" added to your balance, <@{misc.BbId}>."
+			f" added to your balance, <@{misc.BbId}>.\n"
 		)
 	msg = bucks.balance(bb, MockMessage("!bal", bb))
 	assert isinstance(msg.description, str)
@@ -2725,7 +2725,8 @@ async def test_cmd_deal() -> None:
 	assert m is not None
 	emb = m.embeds[0]
 	assert emb.description is not None
-	assert f"You busted. Game over, <@{misc.BbId}>." in emb.description
+	assert f"You busted. Game over" in emb.description
+	assert f"<@{misc.BbId}>" in emb.description
 	assert len(Bot.BlackjackGames) == 0
 
 	game = bucks.BlackjackGame(bb, multiplayer=False)
@@ -2741,7 +2742,8 @@ async def test_cmd_deal() -> None:
 	assert m is not None
 	emb = m.embeds[0]
 	assert emb.description is not None
-	assert f"You hit 21! You win, <@{misc.BbId}>!" in emb.description
+	assert f"You hit 21! You win" in emb.description
+	assert f"<@{misc.BbId}>" in emb.description
 	assert len(Bot.BlackjackGames) == 0
 
 
@@ -2782,7 +2784,7 @@ def test_blackjack_deal_to_player_wins_when_reaching_21() -> None:
 		" Your card values are 10, 9, 2. The dealer is showing ",
 	)
 	assert report.endswith(
-		f", with one card face down. You hit 21! You win, {m.mention}!",
+		f", with one card face down. You hit 21! {bucks.WinMsg}, {m.mention}.\n"
 	)
 
 
@@ -2910,10 +2912,10 @@ def test_blackjack_starting_hand() -> None:
 		mp.setattr("random.randint", lambda _, y: y)
 		game.deck = [bucks.BlackjackGame.AceVal, bucks.BlackjackGame.AceVal, 1, 2]
 		assert game.start_game() == (
-			"Your starting hand consists of two Aces."
-			" One of them will act as a 1. Your total is 12."
-			" Type !hit to deal another card to yourself, or !stay"
-			f" to stop at your current total, {m.mention}."
+			f"{m.mention} your starting hand consists of two Aces."
+			" One of them will act as a 1. Your total is 12.\n"
+			"Type !hit to deal another card to yourself, or !stay"
+			f" to stop at your current total."
 		)
 		assert len(player.hand) == 2
 		assert player.hand[1] == 1
