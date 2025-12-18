@@ -407,6 +407,7 @@ class BlackjackGame:
 			str: The message to show the user(s).
 
 		"""
+		self.turn_idx = 0
 		self.started = True
 		self._deal_cards()
 		if self.dealerSum == BlackjackGame.Goal:
