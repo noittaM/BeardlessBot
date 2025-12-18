@@ -61,7 +61,6 @@ class BlackjackPlayer:
 
 		"""
 		if sum(self.hand) > BlackjackGame.Goal:
-			self.bet *= -1
 			return True
 		return False
 
@@ -247,13 +246,16 @@ class BlackjackGame:
 
 		for p in self.players:
 			if p.perfect() or p.check_bust():
-				# these have already been reported
+				# these have already been handled and reported
 				continue
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
 				self.message += f"You're closer to {BlackjackGame.Goal} "
 				self.message += (
 					f"with a sum of {sum(p.hand)}. "
 					f"{WinMsg.format(p.name.mention)}"
+				)
+				write_money(
+					p.name, p.bet, writing=True, adding=True,
 				)
 			elif sum(p.hand) == self.dealerSum:
 				self.message += (
@@ -264,13 +266,18 @@ class BlackjackGame:
 					f"You have a sum of {sum(p.hand)}. The dealer busts. "
 					f"{WinMsg.format(p.name.mention)}"
 				)
+				write_money(
+					p.name, p.bet, writing=True, adding=True,
+				)
 			else:
 				self.message += (
 					f"That's closer to {BlackjackGame.Goal} "
 					f"than your sum of {sum(p.hand)}.\n"
 					f"{LoseMsg}, {p.name.mention}."
 				)
-				p.bet *= -1
+				write_money(
+					p.name, -p.bet, writing=True, adding=True,
+				)
 			if not p.bet:
 				self.message += (
 					"Unfortunately, you bet nothing, so this was all pointless.\n"
@@ -384,7 +391,6 @@ class BlackjackGame:
 					self.advance_turn()
 			elif p.check_bust(): # only happens if you start with 2 aces
 				p.hand[1] = 1
-				p.bet *= -1
 				message = (
 					f"{p.name.mention} your starting hand consists of two Aces. "
 					"One of them will act as a 1. Your total is 12.\n"
@@ -446,13 +452,21 @@ class BlackjackGame:
 			for i, card in enumerate(player.hand):
 				if card == BlackjackGame.AceVal:
 					player.hand[i] = 1
-					player.bet *= -1
+					write_money(
+						player.name, -player.bet, writing=True, adding=True,
+					)
 					break
 		if player.check_bust():
 			report_params.bust = True
+			write_money(
+				player.name, -player.bet, writing=True, adding=True,
+			)
 			self.advance_turn()
 		elif player.perfect():
 			report_params.perfect = True
+			write_money(
+				player.name, player.bet, writing=True, adding=True,
+			)
 			self.advance_turn()
 
 	def stay_current_player(self) -> str:

@@ -453,9 +453,6 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 				game.deal_current_player(report_params)
 				report = report_params.make_report()
 				if player.check_bust() or player.perfect():
-					bucks.write_money(
-						ctx.author, player.bet, writing=True, adding=True,
-					)
 					if not game.multiplayer:
 						BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
@@ -533,12 +530,8 @@ async def cmd_stay(ctx: misc.BotContext) -> int:
 				report = f"It is not your turn {ctx.author.mention}"
 			else:
 				report = game.stay_current_player()
-				if game.round_over():
-					_ = bucks.write_money(
-						ctx.author, player.bet, writing=True, adding=True,
-					)
-					if not game.multiplayer:
-						BlackjackGames.remove(game)
+				if not game.multiplayer:
+					BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
