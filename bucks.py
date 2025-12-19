@@ -352,7 +352,7 @@ class BlackjackGame:
 			p.hand.append(self.deal_top_card())
 
 	def _force_end_round(self) -> None:
-		self.turn_idx == len(self.players)
+		self.turn_idx = len(self.players)
 
 	def _start_game_blackjack(self) -> str:
 		message = "The dealer blackjacked!\n"
