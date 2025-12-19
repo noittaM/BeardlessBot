@@ -376,6 +376,7 @@ class BlackjackGame:
 			f"The dealer is showing {self.dealerUp}, "
 			"with one card face down.\n"
 		)
+		round_over: bool = False
 		for p in self.players:
 			message += (
 				f"{p.name.mention} your starting hand consists of "
@@ -390,19 +391,22 @@ class BlackjackGame:
 				if self.multiplayer:
 					self.advance_turn()
 			elif p.check_bust(): # only happens if you start with 2 aces
+				round_over = True
 				p.hand[1] = 1
 				message = (
 					f"{p.name.mention} your starting hand consists of two Aces. "
 					"One of them will act as a 1. Your total is 12.\n"
 				)
 			else:
+				round_over = True
 				message += f"Your total is {sum(p.hand)}.\n"
 		if self.multiplayer:
 			message += f"\n{self.players[self.turn_idx].name.mention} it is your turn\n"
-		message += (
-			"Type !hit to deal another card to yourself, "
-			"or !stay to stop at your current total."
-		)
+		if not round_over:
+			message += (
+				"Type !hit to deal another card to yourself, "
+				"or !stay to stop at your current total."
+			)
 		return message
 
 	def start_game(self) -> str:
@@ -820,7 +824,6 @@ def blackjack(
 		player.bet = bet
 		if player.perfect():
 			write_money(author, bet, writing=True, adding=True)
-			report += game._end_round()
 			game = None
 	return report.format(author.mention), game
 
