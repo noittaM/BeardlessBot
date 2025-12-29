@@ -618,7 +618,7 @@ async def cmd_reset(ctx: misc.BotContext) -> int:
 		elif game.multiplayer and not game.started:
 			player.bet = 10 # TODO: move the default bet to a variable
 			report = bucks.reset(ctx.author)
-			report += "Your bet has also been reset to 10."
+			report += " Your bet has also been reset to 10."
 		else:
 			report = bucks.FinMsg.format(ctx.author.mention)
 	await ctx.send(embed=misc.bb_embed("BeardlessBucks Reset", report))

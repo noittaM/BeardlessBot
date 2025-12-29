@@ -248,8 +248,9 @@ class BlackjackGame:
 			if p.perfect() or p.check_bust():
 				# these have already been handled and reported
 				continue
+			self.message += f"{p.name.mention}, "
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
-				self.message += f"You're closer to {BlackjackGame.Goal} "
+				self.message += f"you're closer to {BlackjackGame.Goal} "
 				self.message += (
 					f"with a sum of {sum(p.hand)}. "
 					f"{WinMsg.format(p.name.mention)}"
@@ -259,7 +260,7 @@ class BlackjackGame:
 				)
 			elif sum(p.hand) == self.dealerSum:
 				self.message += (
-					f"That ties your sum of {sum(p.hand)}. Your bet has been returned, {p.name.mention}.\n"
+					f"That ties your sum of {sum(p.hand)}. Your bet has been returned, {p.name.mention}."
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
 				self.message += (
@@ -280,8 +281,9 @@ class BlackjackGame:
 				)
 			if not p.bet:
 				self.message += (
-					"Unfortunately, you bet nothing, so this was all pointless.\n"
+					"Unfortunately, you bet nothing, so this was all pointless."
 				)
+			self.message += "\n" # trust me this is needed
 
 		if not self.multiplayer:
 			return self.message
@@ -290,7 +292,7 @@ class BlackjackGame:
 		self.dealerSum = 0
 		for p in self.players:
 			p.hand = []
-		self.message += "Round ended!"
+		self.message += "\nRound ended!"
 		return self.message
 
 
