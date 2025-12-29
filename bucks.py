@@ -823,7 +823,6 @@ def blackjack(
 		player = game.players[0]
 		player.bet = bet
 		if player.perfect():
-			write_money(author, bet, writing=True, adding=True)
 			game = None
 	return report.format(author.mention), game
 
