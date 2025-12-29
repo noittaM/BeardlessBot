@@ -795,17 +795,19 @@ def blackjack(
 
 	Args:
 		author (nextcord.User or Member): The user who is gambling
-		bet (str): The amount author is wagering. None for a multiplayer game
+		bet (str | int | None): The amount author is wagering.
+			if None then a multiplayer game is created & returned
 
 	Returns:
 		str: A report of the outcome and how author's balance changed.
 		BlackjackGame or None: If there is still a game to play,
 			returns the object representing the game of blackjack
-			author is playing. Else, None.
+			author is playing. Else if game has ended in blackjack, None.
 
 	"""
 	game = None
 	if bet is None:
+		# bet being None means user wants a multiplayer game
 		game = BlackjackGame(author, multiplayer=True)
 		report = game.message
 		return report.format(author.mention), game
