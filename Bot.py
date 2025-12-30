@@ -448,10 +448,7 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 				report = f"It is not your turn {ctx.author.mention}"
 			else:
 				assert game.dealerUp is not None
-				report_params = bucks.DealReportParams(
-					game.dealerUp, ctx.author.mention)
-				game.deal_current_player(report_params)
-				report = report_params.make_report()
+				report = game.deal_current_player()
 				if player.check_bust() or player.perfect():
 					if not game.multiplayer:
 						BlackjackGames.remove(game)

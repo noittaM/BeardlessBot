@@ -2757,11 +2757,10 @@ def test_blackjack_deal_to_player_treats_ace_as_1_when_going_over() -> None:
 		game.deck = [2, 3, 4]
 		mp.setattr("random.randint", lambda x, _: x)
 		assert game.dealerUp is not None
-		report_params = bucks.DealReportParams(dealer_up=game.dealerUp, mention_str=m.mention)
-		game.deal_current_player(report_params)
+		report = game.deal_current_player()
 	assert len(player.hand) == 3
 	assert sum(player.hand) == 12
-	assert report_params.make_report().startswith(
+	assert report.startswith(
 		f"{player.name.mention} you were dealt a 2, bringing your total to 22. To avoid busting,"
 		" your Ace will be treated as a 1. Your new total is 12.",
 	)
@@ -2774,11 +2773,9 @@ def test_blackjack_deal_to_player_wins_when_reaching_21() -> None:
 	player.bet = 10
 	player.hand = [10, 9]
 	assert game.dealerUp is not None
-	report_params = bucks.DealReportParams(dealer_up=game.dealerUp, mention_str=m.mention)
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("random.randint", lambda x, _: x)
-		game.deal_current_player(report_params)
-	report = report_params.make_report()
+		report = game.deal_current_player()
 	assert report.startswith(
 		f"{m.mention} you were dealt a 2, bringing your total to 21."
 		" Your card values are 10, 9, 2. The dealer is showing ",
@@ -2912,6 +2909,7 @@ def test_blackjack_starting_hand() -> None:
 		mp.setattr("random.randint", lambda _, y: y)
 		game.deck = [bucks.BlackjackGame.AceVal, bucks.BlackjackGame.AceVal, 1, 2]
 		assert game.start_game() == (
+			"The dealer is showing 2, with one card face down.\n"
 			f"{m.mention} your starting hand consists of two Aces."
 			" One of them will act as a 1. Your total is 12.\n"
 			"Type !hit to deal another card to yourself, or !stay"

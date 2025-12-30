@@ -82,53 +82,6 @@ class BlackjackPlayer:
 		return False
 
 
-@dataclass
-class DealReportParams:
-	dealer_up: int
-	mention_str: str
-
-	dealt_card: int = 0
-	new_hand: list[int] = field(default_factory=lambda:[])
-	ace_overflow: bool = False
-	bet_is_zero: bool = False
-	bust: bool = False
-	perfect: bool = False
-
-
-	def make_report(self) -> str:
-		game_over: bool = False
-		report = (
-			f"{self.mention_str} you were dealt {BlackjackGame.card_name(self.dealt_card)},"
-			f" bringing your total to "
-		)
-		if self.ace_overflow:
-			report += (
-				f"{sum(self.new_hand) + 10}. "
-				"To avoid busting, your Ace will be treated as a 1. "
-				f"Your new total is {sum(self.new_hand)}. "
-			)
-		else:
-			report += (
-				f"{sum(self.new_hand)}. "
-				"Your card values are {}. The dealer is"
-				" showing {}, with one card face down."
-			).format(", ".join(str(card) for card in self.new_hand), self.dealer_up)
-		if self.bust:
-			report += f" You busted. Game over."
-			game_over = True
-		if self.perfect:
-			report += (
-				f" You hit {BlackjackGame.Goal}! {WinMsg}, {self.mention_str}.\n"
-			)
-			game_over = True
-		elif not game_over:
-			report += (
-				" Type !hit to deal another card to yourself, or !stay"
-				f" to stop at your current total."
-			)
-		return report
-
-
 class BlackjackGame:
 	"""
 	Blackjack game instance.
@@ -378,37 +331,36 @@ class BlackjackGame:
 			f"The dealer is showing {self.dealerUp}, "
 			"with one card face down.\n"
 		)
-		round_over: bool = False
+		append_help: bool = True
 		for p in self.players:
-			message += (
-				f"{p.name.mention} your starting hand consists of "
-				f"{BlackjackGame.card_name(p.hand[0])} "
-				f"and {BlackjackGame.card_name(p.hand[1])}. "
-			)
-			if p.perfect():
-				message += (
-					f"you hit {BlackjackGame.Goal}! {WinMsg}, {p.name.mention}.\n"
-				)
-				write_money(p.name, p.bet, writing=True, adding=True)
-				if self.multiplayer:
-					self.advance_turn()
-			elif p.check_bust(): # only happens if you start with 2 aces
-				round_over = True
+			if p.check_bust():
 				p.hand[1] = 1
-				message = (
+				message += (
 					f"{p.name.mention} your starting hand consists of two Aces. "
 					"One of them will act as a 1. Your total is 12.\n"
 				)
 			else:
-				round_over = True
-				message += f"Your total is {sum(p.hand)}.\n"
-		if self.multiplayer:
-			message += f"\n{self.players[self.turn_idx].name.mention} it is your turn\n"
-		if not round_over:
+				message += (
+					f"{p.name.mention} your starting hand consists of "
+					f"{BlackjackGame.card_name(p.hand[0])} "
+					f"and {BlackjackGame.card_name(p.hand[1])}. "
+				)
+				if p.perfect():
+					append_help = False
+					message += f"you hit {BlackjackGame.Goal}! {WinMsg}, {p.name.mention}.\n"
+					write_money(p.name, p.bet, writing=True, adding=True)
+					if self.multiplayer:
+						self.advance_turn()
+				else:
+					message += f"Your total is {sum(p.hand)}.\n"
+		if append_help:
 			message += (
 				"Type !hit to deal another card to yourself, "
 				"or !stay to stop at your current total."
 			)
+		else:
+			if self.multiplayer:
+				message += f"\n{self.players[self.turn_idx].name.mention} it is your turn\n"
 		return message
 
 	def start_game(self) -> str:
@@ -443,18 +395,22 @@ class BlackjackGame:
 		return self.turn_idx == len(self.players)
 
 
-	def deal_current_player(self, report_params: DealReportParams) -> None:
+	def deal_current_player(self) -> str:
 		"""
 		Deal the user a single card.
 		"""
 		assert self.started
 		dealt = self.deal_top_card()
-		report_params.dealt_card = dealt
+		dealt_card = dealt
 		player = self.players[self.turn_idx]
 		player.hand.append(dealt)
-		report_params.new_hand = player.hand
+		new_hand = player.hand
+		append_help: bool = True
+		report = (
+			f"{player.name.mention} you were dealt {BlackjackGame.card_name(dealt_card)},"
+			f" bringing your total to "
+		)
 		if BlackjackGame.AceVal in player.hand and player.check_bust():
-			report_params.ace_overflow = True
 			for i, card in enumerate(player.hand):
 				if card == BlackjackGame.AceVal:
 					player.hand[i] = 1
@@ -462,18 +418,40 @@ class BlackjackGame:
 						player.name, -player.bet, writing=True, adding=True,
 					)
 					break
+			report += (
+				f"{sum(new_hand) + 10}. "
+				"To avoid busting, your Ace will be treated as a 1. "
+				f"Your new total is {sum(new_hand)}. "
+			)
+		else:
+			report += (
+				f"{sum(new_hand)}. "
+				"Your card values are {}. The dealer is"
+				" showing {}, with one card face down."
+			).format(", ".join(str(card) for card in new_hand), self.dealerUp)
 		if player.check_bust():
-			report_params.bust = True
+			append_help = False
 			write_money(
 				player.name, -player.bet, writing=True, adding=True,
 			)
+			report += f" You busted. Game over."
 			self.advance_turn()
 		elif player.perfect():
-			report_params.perfect = True
+			append_help = False
 			write_money(
 				player.name, player.bet, writing=True, adding=True,
 			)
+			report += (
+				f" You hit {BlackjackGame.Goal}! {WinMsg}, {player.name.mention}.\n"
+			)
 			self.advance_turn()
+		if append_help:
+			report += (
+				" Type !hit to deal another card to yourself, or !stay"
+				f" to stop at your current total."
+			)
+		return report
+
 
 	def stay_current_player(self) -> str:
 		"""
