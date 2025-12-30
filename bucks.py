@@ -182,29 +182,29 @@ class BlackjackGame:
 	def _end_round(self) -> str:
 		assert self.dealerUp is not None
 		assert self.dealerSum != 0
-		if self.multiplayer:
-			self.message = "Round ended, the dealer will now play\n"
-		else:
-			self.message = "The dealer will now play\n"
+		report = ""
 		for p in self.players:
 			if not p.perfect() and not p.check_bust():
 				# dealer should only draw if there is
 				# at least 1 player that stayed
+				if self.multiplayer:
+					report = "Round ended, the dealer will now play\n"
+				else:
+					report = "The dealer will now play\n"
 				dealer_cards: list[int] = self.dealer_draw()
-				self.message += "The dealer's cards are {} ".format(
+				report += "The dealer's cards are {} ".format(
 					", ".join(BlackjackGame.card_name(card) for card in dealer_cards)
 				)
-				self.message += f"for a total of {self.dealerSum}. "
+				report += f"for a total of {self.dealerSum}. "
 				break
-
 		for p in self.players:
 			if p.perfect() or p.check_bust():
 				# these have already been handled and reported
 				continue
-			self.message += f"{p.name.mention}, "
+			report += f"{p.name.mention}, "
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
-				self.message += f"you're closer to {BlackjackGame.Goal} "
-				self.message += (
+				report += f"you're closer to {BlackjackGame.Goal} "
+				report += (
 					f"with a sum of {sum(p.hand)}. "
 					f"{WinMsg.format(p.name.mention)}"
 				)
@@ -212,11 +212,11 @@ class BlackjackGame:
 					p.name, p.bet, writing=True, adding=True,
 				)
 			elif sum(p.hand) == self.dealerSum:
-				self.message += (
+				report += (
 					f"That ties your sum of {sum(p.hand)}. Your bet has been returned, {p.name.mention}."
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
-				self.message += (
+				report += (
 					f"You have a sum of {sum(p.hand)}. The dealer busts. "
 					f"{WinMsg.format(p.name.mention)}"
 				)
@@ -224,7 +224,7 @@ class BlackjackGame:
 					p.name, p.bet, writing=True, adding=True,
 				)
 			else:
-				self.message += (
+				report += (
 					f"That's closer to {BlackjackGame.Goal} "
 					f"than your sum of {sum(p.hand)}.\n"
 					f"{LoseMsg}, {p.name.mention}."
@@ -233,20 +233,19 @@ class BlackjackGame:
 					p.name, -p.bet, writing=True, adding=True,
 				)
 			if not p.bet:
-				self.message += (
+				report += (
 					"Unfortunately, you bet nothing, so this was all pointless."
 				)
-			self.message += "\n" # trust me this is needed
-
+				report += "\n" # trust me this is needed
 		if not self.multiplayer:
-			return self.message
+			return report
 		self.started = False
 		self.dealerUp = None
 		self.dealerSum = 0
 		for p in self.players:
 			p.hand = []
-		self.message += "\nRound ended!"
-		return self.message
+		report += "\nRound ended!"
+		return report
 
 
 
@@ -450,6 +449,8 @@ class BlackjackGame:
 				" Type !hit to deal another card to yourself, or !stay"
 				f" to stop at your current total."
 			)
+		if self.round_over():
+			report += self._end_round()
 		return report
 
 
@@ -463,11 +464,11 @@ class BlackjackGame:
 			bool: the round has ended.
 
 		"""
-		self.message = f"{self.players[self.turn_idx].name.mention} you stayed.\n"
+		report = f"{self.players[self.turn_idx].name.mention} you stayed.\n"
 		self.advance_turn()
 		if self.round_over():
-			self._end_round()
-		return self.message
+			report += self._end_round()
+		return report
 
 
 	def get_player(self, player: nextcord.User | nextcord.Member) -> BlackjackPlayer | None:
