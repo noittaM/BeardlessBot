@@ -109,7 +109,7 @@ class BlackjackGame:
 		_end_round():
 			Ends a round after everyone plays their turn.
 		deal_to_current_player():
-			Deals the player whos turn it is a card.
+			Deals the player whose turn it is a card.
 		card_name(card):
 			Gives the human-friendly name of a given card.
 		ready_to_start():
@@ -484,7 +484,7 @@ class BlackjackGame:
 
 	def deal_current_player(self) -> str:
 		"""
-		Deal the player who's turn it is a single card.
+		Deal the player whose turn it is a single card.
 
 		Returns:
 			str: report
