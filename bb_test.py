@@ -2626,8 +2626,8 @@ def test_blackjack() -> None:
 
 	bucks.reset(bb)
 	with pytest.MonkeyPatch.context() as mp:
-		report, game = bucks.blackjack(bb, 0)
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: False)
+		report, game = bucks.blackjack(bb, 0)
 		assert isinstance(game, bucks.BlackjackGame)
 		assert "you hit 21!" not in report
 
