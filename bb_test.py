@@ -3921,3 +3921,26 @@ def test_is_turn_and_advance_turn_skips_perfect_players():
 	# make sure the turn_idx is no longer valid.
 	# all we know is that it should not a valid idx into BlackjackGame.players
 	assert not (game.turn_idx > 0 and game.turn_idx < len(game.players))
+
+
+def test_dealer_draw_stops_at_dealer_soft_goal(monkeypatch):
+	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
+
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x)
+
+		# this is major ass please replace dealerUp & dealerSum with dealerCards
+		game.dealerUp = 10
+		game.dealerSum = bucks.BlackjackGame.DealerSoftGoal - 1
+		game.deck = [1, 5, 9, 11]
+		dealer_cards = game.dealer_draw()
+		assert dealer_cards == [10, 6, 1]
+		assert game.dealerSum == 17
+
+		# test no draw on soft-goal
+		game.dealerUp = 10
+		game.dealerSum = bucks.BlackjackGame.DealerSoftGoal
+		game.deck = [1, 5, 9, 11]
+		dealer_cards = game.dealer_draw()
+		assert dealer_cards == [10, 7]
+		assert game.dealerSum == bucks.BlackjackGame.DealerSoftGoal
