@@ -2702,10 +2702,7 @@ async def test_cmd_deal() -> None:
 	game = bucks.BlackjackGame(bb, multiplayer=False)
 	assert len(game.players) == 1
 	player = game.players[0]
-	if player.perfect() or player.check_bust():
-		assert game.turn_idx == 1
-	else:
-		assert game.turn_idx == 0
+	assert game.turn_idx == 0
 	player.hand = [2, 2]
 	Bot.BlackjackGames = [game]
 	assert await Bot.cmd_deal(ctx) == 1

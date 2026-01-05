@@ -370,7 +370,8 @@ class BlackjackGame:
 		Ends a round where the dealer blackjacked by skipping players' turns.
 		"""
 		assert self.dealerSum == self.Goal
-		self.turn_idx = len(self.players)
+		if self.multiplayer:
+			self.turn_idx = len(self.players)
 
 
 	def _start_game_blackjack(self) -> str:
