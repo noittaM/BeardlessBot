@@ -337,6 +337,8 @@ class BlackjackGame:
 		Returns:
 			bool: whether is it the turn of 'player'
 		"""
+		if self.turn_idx < 0 or self.turn_idx >= len(self.players):
+			return False
 		return self.players[self.turn_idx] == player
 
 
