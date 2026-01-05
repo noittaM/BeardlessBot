@@ -3870,3 +3870,34 @@ if BrawlKey:
 			)
 		finally:
 			brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
+
+
+def test_add_player_get_player_and_ready_to_start():
+	p1 = MockUser()
+	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
+	owner = game.players[0]
+
+	assert game.multiplayer is True
+	assert len(game.players) == 1
+	assert game.ready_to_start() is True
+	assert int(owner.bet) == 10 # please move starting bet into a variable
+
+	# test get_player with players not in game
+	p2 = MockUser()
+	assert game.get_player(p2) is None
+
+	# add another player and ensure get_player finds them
+	game.add_player(p2)
+	assert len(game.players) == 2
+	found = game.get_player(p2)
+	assert found is not None
+	assert found.name == p2
+
+	found.bet = None
+	assert game.ready_to_start() is False
+	found.bet = 5
+	assert game.ready_to_start() is True
+	owner.bet = None
+	assert game.ready_to_start() is False
+	owner.bet = 5
+	assert game.ready_to_start() is True

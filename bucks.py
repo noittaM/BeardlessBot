@@ -573,7 +573,7 @@ class BlackjackGame:
 			BlackjackPlayer: the player if in match or None.
 		"""
 		for p in self.players:
-			if p.name == player:
+			if p.name is player:
 				return p
 		return None
 
