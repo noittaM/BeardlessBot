@@ -3873,7 +3873,6 @@ if BrawlKey:
 
 
 def test_add_player_get_player_and_ready_to_start():
-	p1 = MockUser()
 	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
 	owner = game.players[0]
 
