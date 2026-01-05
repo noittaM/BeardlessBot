@@ -3900,3 +3900,24 @@ def test_add_player_get_player_and_ready_to_start():
 	assert game.ready_to_start() is False
 	owner.bet = 5
 	assert game.ready_to_start() is True
+
+
+def test_is_turn_and_advance_turn_skips_perfect_players():
+	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
+	game.add_player(MockMember())
+	game.add_player(MockMember())
+
+	assert game.turn_idx == 0
+	assert game.is_turn(game.players[0]) is True
+
+	game.advance_turn()
+	assert game.turn_idx == 1
+	assert game.is_turn(game.players[1]) is True
+
+	assert len(game.players) == 3
+	# test skipping of players who blackjacked
+	game.players[2].hand = [bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal]
+	game.advance_turn()
+	# make sure the turn_idx is no longer valid.
+	# all we know is that it should not a valid idx into BlackjackGame.players
+	assert not (game.turn_idx > 0 and game.turn_idx < len(game.players))
