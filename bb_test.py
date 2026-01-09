@@ -3920,7 +3920,7 @@ def test_is_turn_and_advance_turn_skips_perfect_players():
 	assert not (game.turn_idx > 0 and game.turn_idx < len(game.players))
 
 
-def test_dealer_draw_stops_at_dealer_soft_goal(monkeypatch):
+def test_dealer_draw_stops_at_dealer_soft_goal():
 	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
 
 	with pytest.MonkeyPatch.context() as mp:
