@@ -297,7 +297,7 @@ class BlackjackGame:
 
 		"""
 		if card == BlackjackGame.FaceVal:
-			# TODO: this can cause us to draw more of a single face card that would
+			# TODO: this can cause us to draw more of a single face card than would
 			# exist in the card pool in a real game. fixing this is not simple
 			return "a " + random.choice(
 				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
