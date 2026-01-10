@@ -415,9 +415,11 @@ class BlackjackGame:
 			f"The dealer is showing {self.dealerUp}, "
 			"with one card face down.\n"
 		)
-		append_help: bool = True
+		append_help: bool = False if self.multiplayer else True
 		for p in self.players:
 			if p.check_bust():
+				if self.multiplayer:
+					append_help = True
 				p.hand[1] = 1
 				message += (
 					f"{p.name.mention} your starting hand consists of two Aces. "
@@ -430,12 +432,16 @@ class BlackjackGame:
 					f"and {BlackjackGame.card_name(p.hand[1])}. "
 				)
 				if p.perfect():
-					append_help = False
-					message += f"you hit {BlackjackGame.Goal}! {WinMsg}, {p.name.mention}.\n"
+					if not self.multiplayer:
+						append_help = False
+					else:
+						if p == self.players[self.turn_idx]:
+							self.advance_turn()
+					message += f"you hit {BlackjackGame.Goal}! {WinMsg}.\n"
 					write_money(p.name, p.bet, writing=True, adding=True)
-					if self.multiplayer:
-						self.advance_turn()
 				else:
+					if self.multiplayer:
+						append_help = True
 					message += f"Your total is {sum(p.hand)}.\n"
 		if append_help:
 			if not self.multiplayer:
