@@ -3869,7 +3869,7 @@ if BrawlKey:
 			brawl.claim_profile(Bot.OwnerId, OwnerBrawlId)
 
 
-def test_add_player_get_player_and_ready_to_start():
+def test_add_player_get_player_and_ready_to_start() -> None:
 	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
 	owner = game.players[0]
 
@@ -3901,7 +3901,7 @@ def test_add_player_get_player_and_ready_to_start():
 	# assert game.ready_to_start() is True
 
 
-def test_is_turn_and_advance_turn_skips_perfect_players():
+def test_is_turn_and_advance_turn_skips_perfect_players() -> None:
 	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
 	game.add_player(MockMember())
 	game.add_player(MockMember())
@@ -3922,7 +3922,7 @@ def test_is_turn_and_advance_turn_skips_perfect_players():
 	assert not (game.turn_idx > 0 and game.turn_idx < len(game.players))
 
 
-def test_dealer_draw_stops_at_dealer_soft_goal():
+def test_dealer_draw_stops_at_dealer_soft_goal() -> None:
 	game = bucks.BlackjackGame(MockMember(), multiplayer=True)
 
 	with pytest.MonkeyPatch.context() as mp:
