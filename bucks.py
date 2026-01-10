@@ -44,6 +44,8 @@ InvalidBetMsg = (
 WinMsg = "You win! Your winnings have been added to your balance"
 LoseMsg = "You lose! Your losses have been deducted from your balance"
 
+GameHelpMsg = "Type !hit to deal another card to yourself, or !stay to stop at your current total."
+
 class BlackjackPlayer:
 	def __init__(self, name: nextcord.User | nextcord.Member):
 		self.name: nextcord.User | nextcord.Member =  name
@@ -436,13 +438,10 @@ class BlackjackGame:
 				else:
 					message += f"Your total is {sum(p.hand)}.\n"
 		if append_help:
-			message += (
-				"Type !hit to deal another card to yourself, "
-				"or !stay to stop at your current total."
-			)
-		else:
-			if self.multiplayer:
-				message += f"\n{self.players[self.turn_idx].name.mention} it is your turn\n"
+			if not self.multiplayer:
+				message += GameHelpMsg
+			else:
+				message += f"\n{self.players[self.turn_idx].name.mention} it is your turn! {GameHelpMsg}"
 		return message
 
 	def start_game(self) -> str:
@@ -544,11 +543,8 @@ class BlackjackGame:
 			)
 			self.advance_turn()
 		if append_help:
-			report += (
-				" Type !hit to deal another card to yourself, or !stay"
-				f" to stop at your current total."
-			)
-		if self.round_over():
+			report += GameHelpMsg
+		elif self.round_over():
 			report += self._end_round()
 		return report
 
