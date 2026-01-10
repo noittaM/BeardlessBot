@@ -3889,14 +3889,16 @@ def test_add_player_get_player_and_ready_to_start():
 	assert found is not None
 	assert found.name == p2
 
-	found.bet = None
-	assert game.ready_to_start() is False
-	found.bet = 5
-	assert game.ready_to_start() is True
-	owner.bet = None
-	assert game.ready_to_start() is False
-	owner.bet = 5
-	assert game.ready_to_start() is True
+	# this should be tested when BlackjackPlayer.bet's is turned into 'int | None'
+	# for more info grep for '805746791'
+	# found.bet = None
+	# assert game.ready_to_start() is False
+	# found.bet = 5
+	# assert game.ready_to_start() is True
+	# owner.bet = None
+	# assert game.ready_to_start() is False
+	# owner.bet = 5
+	# assert game.ready_to_start() is True
 
 
 def test_is_turn_and_advance_turn_skips_perfect_players():

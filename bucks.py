@@ -48,6 +48,9 @@ class BlackjackPlayer:
 	def __init__(self, name: nextcord.User | nextcord.Member):
 		self.name: nextcord.User | nextcord.Member =  name
 		self.hand: list[int] = []
+		# TODO: make BlackjackPlayer.bet's type be 'int | None'
+		# and add a phase after owner does '!tablestart' where people make their bets
+		# grep for '805746791' when this is changed
 		self.bet: int = 10
 
 	def check_bust(self) -> bool:
@@ -302,6 +305,8 @@ class BlackjackGame:
 		return "an 8" if card == 8 else ("a " + str(card))  # noqa: PLR2004
 
 
+	# NOTE: this is currently useless
+	# for more info grep for '805746791'
 	def ready_to_start(self) -> bool:
 		"""
 		Checks if a multiplayer match is ready to start.
