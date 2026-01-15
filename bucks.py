@@ -230,7 +230,7 @@ class BlackjackGame:
 				report += "The dealer's cards are {} ".format(
 					", ".join(BlackjackGame.card_name(card) for card in dealer_cards)
 				)
-				report += f"for a total of {self.dealerSum}. "
+				report += f"for a total of {self.dealerSum}.\n"
 				break
 		for p in self.players:
 			if p.perfect() or p.check_bust():
@@ -240,8 +240,7 @@ class BlackjackGame:
 			if sum(p.hand) > self.dealerSum and not p.check_bust():
 				report += f"you're closer to {BlackjackGame.Goal} "
 				report += (
-					f"with a sum of {sum(p.hand)}. "
-					f"{WinMsg.format(p.name.mention)}"
+					f"with a sum of {sum(p.hand)}. {WinMsg}"
 				)
 				write_money(
 					p.name, p.bet, writing=True, adding=True,
@@ -252,8 +251,7 @@ class BlackjackGame:
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
 				report += (
-					f"You have a sum of {sum(p.hand)}. The dealer busts. "
-					f"{WinMsg.format(p.name.mention)}"
+					f"You have a sum of {sum(p.hand)}. The dealer busts. {WinMsg}"
 				)
 				write_money(
 					p.name, p.bet, writing=True, adding=True,
@@ -261,8 +259,7 @@ class BlackjackGame:
 			else:
 				report += (
 					f"That's closer to {BlackjackGame.Goal} "
-					f"than your sum of {sum(p.hand)}.\n"
-					f"{LoseMsg}, {p.name.mention}."
+					f"than your sum of {sum(p.hand)}. {LoseMsg}."
 				)
 				write_money(
 					p.name, -p.bet, writing=True, adding=True,
@@ -271,7 +268,7 @@ class BlackjackGame:
 				report += (
 					"Unfortunately, you bet nothing, so this was all pointless."
 				)
-				report += "\n" # trust me this is needed
+			report += "\n" # trust me this is needed
 		if not self.multiplayer:
 			return report
 		self.started = False
@@ -390,11 +387,11 @@ class BlackjackGame:
 			message += f"{p.name.mention} your starting hand consists of {p.hand[0]} and {p.hand[1]}. "
 			if p.perfect():
 				message += (
-					f"You tied with the dealer, your bet is returned."
+					f"You tied with the dealer, your bet is returned.\n"
 				)
 			else:
 				message += (
-					f"You did not blackjack, you lose."
+					f"You did not blackjack, you lose.\n"
 				)
 				write_money(p.name, -p.bet, writing=True, adding=True)
 		self._dealer_blackjack_end_round()
