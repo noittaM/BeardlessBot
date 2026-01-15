@@ -449,9 +449,11 @@ async def cmd_deal(ctx: misc.BotContext) -> int:
 			else:
 				assert game.dealerUp is not None
 				report = game.deal_current_player()
-				if player.check_bust() or player.perfect():
-					if not game.multiplayer:
-						BlackjackGames.remove(game)
+				if (
+					(player.check_bust() or player.perfect())
+					and not game.multiplayer
+				):
+					BlackjackGames.remove(game)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 

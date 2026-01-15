@@ -6,8 +6,6 @@ from collections import OrderedDict
 from enum import Enum
 from operator import itemgetter
 from pathlib import Path
-from dataclasses import dataclass
-from dataclasses import field
 
 import nextcord
 
@@ -44,28 +42,53 @@ InvalidBetMsg = (
 WinMsg = "You win! Your winnings have been added to your balance"
 LoseMsg = "You lose! Your losses have been deducted from your balance"
 
-GameHelpMsg = "Type !hit to deal another card to yourself, or !stay to stop at your current total."
+GameHelpMsg = (
+	"Type !hit to deal another card to yourself, "
+	"or !stay to stop at your current total."
+)
 
 class BlackjackPlayer:
-	def __init__(self, name: nextcord.User | nextcord.Member):
+	"""
+	BlackjackPlayer instantce.
+
+	Attributes:
+		name (Nextcord.User | Nextcord.Member):
+			The discord user representing the player
+		hand (list[int]): The player's current hand
+		bet (int): The player's current bet
+
+	Methods:
+		check_bust(): Check if the player has gone over BlackjackGame.Goal.
+		perfect(): Check if the user has reached BlackjackGame.Goal
+
+	"""
+
+	def __init__(self, name: nextcord.User | nextcord.Member) -> None:
+		"""
+		Create a new BlackjackPlayer instance.
+
+		Args:
+			name (nextcord.User or Member):
+				The discord user representing this player
+
+		"""
 		self.name: nextcord.User | nextcord.Member =  name
 		self.hand: list[int] = []
 		# TODO: make BlackjackPlayer.bet's type be 'int | None'
-		# and add a phase after owner does '!tablestart' where people make their bets
+		# and add a phase after owner does '!tablestart' where
+		# people make their bets
 		# grep for '805746791' when this is changed
 		self.bet: int = 10
 
 	def check_bust(self) -> bool:
 		"""
-		Check if a user has gone over Goal.
+		Check if the player has gone over BlackjackGame.Goal.
 
 		Returns:
-			bool: Whether the user has gone over Goal.
+			bool: Whether the user has gone over BlackjackGame.Goal.
 
 		"""
-		if sum(self.hand) > BlackjackGame.Goal:
-			return True
-		return False
+		return sum(self.hand) > BlackjackGame.Goal
 
 
 	def perfect(self) -> bool:
@@ -80,9 +103,8 @@ class BlackjackPlayer:
 			bool: Whether the user has gotten Blackjack.
 
 		"""
-		if sum(self.hand) == BlackjackGame.Goal:
-			return True
-		return False
+		return sum(self.hand) == BlackjackGame.Goal
+
 
 
 class BlackjackGame:
@@ -135,6 +157,7 @@ class BlackjackGame:
 			End a round where the dealer blackjacked.
 		start_game():
 			Deal the user(s) a starting hand of 2 cards.
+
 	"""
 
 	AceVal = 11
@@ -147,6 +170,7 @@ class BlackjackGame:
 	def __init__(
 		self,
 		owner: nextcord.User | nextcord.Member,
+		*,
 		multiplayer: bool,
 	) -> None:
 		"""
@@ -163,11 +187,11 @@ class BlackjackGame:
 			multiplayer (bool): Whether to make a multiplayer game
 
 		"""
-		self.owner = BlackjackPlayer(owner);
+		self.owner = BlackjackPlayer(owner)
 		self.players: list[BlackjackPlayer] = [self.owner]
 		self.deck: list[int] = []
 		self.deck.extend(BlackjackGame.CardVals * 4 * 4) # 4 decks
-		# FIXME: dealerUp should NEVER be None
+		# TODO: dealerUp should NEVER be None
 		# and dealerSum should NEVER be 0
 		self.dealerUp: int | None = None
 		self.dealerSum: int = 0
@@ -182,16 +206,19 @@ class BlackjackGame:
 
 	def dealer_draw(self) -> list[int]:
 		"""
-		Simulates the dealer drawing cards.
+		Simulate the dealer drawing cards.
 
 		Will draw cards until dealer is above DealerSoftGoal
 		Takes into accounts Ace overflow.
 
 		Returns:
 			list[int]: the dealers final hand
+
 		"""
 		assert self.dealerUp is not None
-		dealer_cards: list[int] = [self.dealerUp, self.dealerSum - self.dealerUp]
+		dealer_cards: list[int] = [
+			self.dealerUp, self.dealerSum - self.dealerUp,
+		]
 		while True:
 			if self.dealerSum > BlackjackGame.DealerSoftGoal:
 				if BlackjackGame.AceVal in dealer_cards:
@@ -208,12 +235,13 @@ class BlackjackGame:
 
 	def _end_round(self) -> str:
 		"""
-		Ends a blackjack round.
+		End a round where the dealer blackjacked.
 
 		Will draw the dealers cards only if at least one player stayed.
 
 		Returns:
 			str: final report
+
 		"""
 		assert self.dealerUp is not None
 		assert self.dealerSum != 0
@@ -228,7 +256,8 @@ class BlackjackGame:
 					report = "The dealer will now play\n"
 				dealer_cards: list[int] = self.dealer_draw()
 				report += "The dealer's cards are {} ".format(
-					", ".join(BlackjackGame.card_name(card) for card in dealer_cards)
+					", ".join(BlackjackGame.card_name(card)
+						for card in dealer_cards),
 				)
 				report += f"for a total of {self.dealerSum}.\n"
 				break
@@ -247,11 +276,13 @@ class BlackjackGame:
 				)
 			elif sum(p.hand) == self.dealerSum:
 				report += (
-					f"That ties your sum of {sum(p.hand)}. Your bet has been returned, {p.name.mention}."
+					f"That ties your sum of {sum(p.hand)}. "
+					f"Your bet has been returned, {p.name.mention}."
 				)
 			elif self.dealerSum > BlackjackGame.Goal:
 				report += (
-					f"You have a sum of {sum(p.hand)}. The dealer busts. {WinMsg}"
+					f"You have a sum of {sum(p.hand)}. "
+					f"The dealer busts. {WinMsg}"
 				)
 				write_money(
 					p.name, p.bet, writing=True, adding=True,
@@ -294,8 +325,9 @@ class BlackjackGame:
 
 		"""
 		if card == BlackjackGame.FaceVal:
-			# TODO: this can cause us to draw more of a single face card than would
-			# exist in the card pool in a real game. fixing this is not simple
+			# TODO: this can cause us to draw more of a single facecard
+			# than would exist in the card pool in a real game.
+			# fixing this is not simple
 			return "a " + random.choice(
 				(str(BlackjackGame.FaceVal), "Jack", "Queen", "King"),
 			)
@@ -308,16 +340,14 @@ class BlackjackGame:
 	# for more info grep for '805746791'
 	def ready_to_start(self) -> bool:
 		"""
-		Checks if a multiplayer match is ready to start.
+		Check if a multiplayer match is ready to start.
 
 		Returns:
 			bool: whether all players have placed a bet.
+
 		"""
 		assert self.multiplayer
-		for player in self.players:
-			if player.bet is None:
-				return False
-		return True
+		return all(player.bet is not None for player in self.players)
 
 
 	def add_player(self, player: nextcord.User | nextcord.Member) -> None:
@@ -325,7 +355,8 @@ class BlackjackGame:
 		Add a player to a multiplayer blackjack match.
 
 		Args:
-			player (nextcord.User | nextcord.Member) the player to add.
+			player (nextcord.User | nextcord.Member): the player to add.
+
 		"""
 		assert self.multiplayer
 		self.players.append(BlackjackPlayer(player))
@@ -333,13 +364,14 @@ class BlackjackGame:
 
 	def is_turn(self, player: BlackjackPlayer) -> bool:
 		"""
-		Checks whether it is the turn of a given player.
+		Check whether it is the turn of a given player.
 
 		Args:
-			player (nextcord.User | nextcord.Member) the player to check.
+			player (nextcord.User | nextcord.Member): the player to check.
 
 		Returns:
 			bool: whether is it the turn of 'player'
+
 		"""
 		if self.turn_idx < 0 or self.turn_idx >= len(self.players):
 			return False
@@ -358,9 +390,7 @@ class BlackjackGame:
 
 
 	def _deal_cards(self) -> None:
-		"""
-		Deal the starting cards to the dealer and all players.
-		"""
+		"""Deal the starting cards to the dealer and all players."""
 		self.dealerUp = self.deal_top_card()
 		self.dealerSum = self.dealerUp + self.deal_top_card()
 		for p in self.players:
@@ -370,28 +400,27 @@ class BlackjackGame:
 
 
 	def _dealer_blackjack_end_round(self) -> None:
-		"""
-		Ends a round where the dealer blackjacked by skipping players' turns.
-		"""
+		"""End a round where the dealer blackjacked."""
 		assert self.dealerSum == self.Goal
 		if self.multiplayer:
 			self.turn_idx = len(self.players)
 
 
 	def _start_game_blackjack(self) -> str:
-		"""
-		Play players' turns after the dealer draws blackjacks.
-		"""
+		"""Play players' turns after the dealer draws blackjacks."""
 		message = "The dealer blackjacked!\n"
 		for p in self.players:
-			message += f"{p.name.mention} your starting hand consists of {p.hand[0]} and {p.hand[1]}. "
+			message += (
+				f"{p.name.mention} your starting hand consists of "
+				f"{p.hand[0]} and {p.hand[1]}. "
+			)
 			if p.perfect():
 				message += (
-					f"You tied with the dealer, your bet is returned.\n"
+					"You tied with the dealer, your bet is returned.\n"
 				)
 			else:
 				message += (
-					f"You did not blackjack, you lose.\n"
+					"You did not blackjack, you lose.\n"
 				)
 				write_money(p.name, -p.bet, writing=True, adding=True)
 		self._dealer_blackjack_end_round()
@@ -407,20 +436,21 @@ class BlackjackGame:
 
 		Returns:
 			str: human readable report message.
+
 		"""
 		message = (
 			f"The dealer is showing {self.dealerUp}, "
 			"with one card face down.\n"
 		)
-		append_help: bool = False if self.multiplayer else True
+		append_help: bool = not self.multiplayer
 		for p in self.players:
 			if p.check_bust():
 				if self.multiplayer:
 					append_help = True
 				p.hand[1] = 1
 				message += (
-					f"{p.name.mention} your starting hand consists of two Aces. "
-					"One of them will act as a 1. Your total is 12.\n"
+					f"{p.name.mention} your starting hand consists of two Aces."
+					" One of them will act as a 1. Your total is 12.\n"
 				)
 			else:
 				message += (
@@ -431,9 +461,8 @@ class BlackjackGame:
 				if p.perfect():
 					if not self.multiplayer:
 						append_help = False
-					else:
-						if p == self.players[self.turn_idx]:
-							self.advance_turn()
+					elif p == self.players[self.turn_idx]:
+						self.advance_turn()
 					message += f"you hit {BlackjackGame.Goal}! {WinMsg}.\n"
 					write_money(p.name, p.bet, writing=True, adding=True)
 				else:
@@ -444,7 +473,10 @@ class BlackjackGame:
 			if not self.multiplayer:
 				message += GameHelpMsg
 			else:
-				message += f"\n{self.players[self.turn_idx].name.mention} it is your turn! {GameHelpMsg}"
+				message += (
+					f"\n{self.players[self.turn_idx].name.mention} "
+					f"it is your turn! {GameHelpMsg}"
+				)
 		return message
 
 	def start_game(self) -> str:
@@ -483,10 +515,11 @@ class BlackjackGame:
 
 	def round_over(self) -> bool:
 		"""
-		Checks if the round ended.
+		Check if the round ended.
 
 		Returns:
 			bool: if the round ended
+
 		"""
 		assert self.turn_idx <= len(self.players)
 		return self.turn_idx == len(self.players)
@@ -498,6 +531,7 @@ class BlackjackGame:
 
 		Returns:
 			str: report
+
 		"""
 		assert self.started
 		dealt = self.deal_top_card()
@@ -507,8 +541,9 @@ class BlackjackGame:
 		new_hand = player.hand
 		append_help: bool = True
 		report = (
-			f"{player.name.mention} you were dealt {BlackjackGame.card_name(dealt_card)},"
-			f" bringing your total to "
+			f"{player.name.mention} you were dealt "
+			f"{BlackjackGame.card_name(dealt_card)}, "
+			"bringing your total to "
 		)
 		if BlackjackGame.AceVal in player.hand and player.check_bust():
 			for i, card in enumerate(player.hand):
@@ -534,7 +569,7 @@ class BlackjackGame:
 			write_money(
 				player.name, -player.bet, writing=True, adding=True,
 			)
-			report += f" You busted. Game over."
+			report += " You busted. Game over."
 			self.advance_turn()
 		elif player.perfect():
 			append_help = False
@@ -542,7 +577,8 @@ class BlackjackGame:
 				player.name, player.bet, writing=True, adding=True,
 			)
 			report += (
-				f" You hit {BlackjackGame.Goal}! {WinMsg}, {player.name.mention}.\n"
+				f" You hit {BlackjackGame.Goal}! "
+				f"{WinMsg}, {player.name.mention}.\n"
 			)
 			self.advance_turn()
 		if append_help:
@@ -569,7 +605,9 @@ class BlackjackGame:
 		return report
 
 
-	def get_player(self, player: nextcord.User | nextcord.Member) -> BlackjackPlayer | None:
+	def get_player(
+		self, player: nextcord.User | nextcord.Member,
+	) -> BlackjackPlayer | None:
 		"""
 		Get player by name if in current match.
 
@@ -578,6 +616,7 @@ class BlackjackGame:
 
 		Returns:
 			BlackjackPlayer: the player if in match or None.
+
 		"""
 		for p in self.players:
 			if p.name is player:
@@ -714,12 +753,14 @@ def reset(target: nextcord.User | nextcord.Member) -> str:
 		target (nextcord.User or Member): The user to reset
 
 	Returns:
-		nextcord.Embed: the report of the target's balance reset.
+		str: the report of the target's balance reset.
 
 	"""
 	result, bonus = write_money(target, 200, writing=True, adding=False)
-	report = bonus if result == MoneyFlags.Registered else f"You have been reset to 200 BeardlessBucks, {target.mention}."
-	assert isinstance(report, str)
+	if result == MoneyFlags.Registered:
+		report = NewUserMsg.format(target.mention)
+	else:
+		report = f"You have been reset to 200 BeardlessBucks, {target.mention}."
 	return report
 
 
@@ -833,15 +874,17 @@ def flip(author: nextcord.User | nextcord.Member, bet: str | int) -> str:
 	return report.format(author.mention)
 
 
-def can_make_bet(user: nextcord.User | nextcord.Member, bet: str | int) -> tuple[bool, str | None]:
+def can_make_bet(
+	user: nextcord.User | nextcord.Member,
+	bet: str | int,
+) -> tuple[bool, str | None]:
 	if isinstance(bet, str):
 		if bet == "all":
 			return True, None
-		else:
-			try:
-				bet_num: int = int(bet)
-			except ValueError:
-				return False, InvalidBetMsg.format(user.mention)
+		try:
+			bet_num: int = int(bet)
+		except ValueError:
+			return False, InvalidBetMsg.format(user.mention)
 	if bet_num < 0:
 		return False, InvalidBetMsg.format(user.mention)
 
@@ -849,7 +892,11 @@ def can_make_bet(user: nextcord.User | nextcord.Member, bet: str | int) -> tuple
 	if result == MoneyFlags.Registered:
 		return True, NewUserMsg.format(user.name)
 	if isinstance(bank, int) and bet_num > bank:
-		return False, "You do not have enough BeardlessBucks to bet that much, {}!".format(user.mention)
+		return False, (
+			"You do not have enough BeardlessBucks to "
+			f"bet that much, {user.mention}!"
+		)
+
 	return True, None
 
 
@@ -918,23 +965,6 @@ def blackjack(
 			game = None
 	return report.format(author.mention), game
 
-
-def money_in_bank(user: nextcord.Member | nextcord.User) -> int:
-	result, bonus = write_money(
-		user, 300, writing=False, adding=False,
-	)
-	assert bonus is not None
-	match result:
-		case MoneyFlags.NotEnoughBucks:
-			assert False
-		case MoneyFlags.BalanceChanged:
-			assert False
-
-		case MoneyFlags.BalanceUnchanged:
-			return bonus
-
-		case MoneyFlags.Registered:
-			return bonus
 
 def player_in_game(
 	games: list[BlackjackGame], author: nextcord.User | nextcord.Member,
