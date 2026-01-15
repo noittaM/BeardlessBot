@@ -3943,3 +3943,183 @@ def test_dealer_draw_stops_at_dealer_soft_goal() -> None:
 		dealer_cards = game.dealer_draw()
 		assert dealer_cards == [10, 7]
 		assert game.dealerSum == bucks.BlackjackGame.DealerSoftGoal
+
+
+def make_blackjack_multiplayer_with_unique_user_id(num_of_players: int) -> bucks.BlackjackGame:
+	"""
+	Helper for creating multiplayer blackjack games with unique user-ids
+
+	Args:
+		num_of_players (int): 1-9 inclusive. The number of players in the game.
+
+	Returns:
+		BlackjackGame: the created blackjack game
+	"""
+	assert num_of_players > 0
+	assert num_of_players < 10
+	game = bucks.BlackjackGame(MockMember(user=MockUser(user_id=1111)), multiplayer=True)
+	for i in range(num_of_players - 1):
+		i += 2
+		new_id = i + i * 10 + i * 100 + i * 1000
+		game.add_player(MockMember(user=MockUser(user_id=new_id)))
+	return game
+
+
+def test_blackjack_multiplayer_start_game_skip_perfected_players() -> None:
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x) # for deck draws
+
+		game = make_blackjack_multiplayer_with_unique_user_id(3)
+		game.deck = [1, 2, # no dealer blackjack
+			3, 4, 5, 6, 7, 8,
+		]
+		report = game.start_game()
+		assert game.is_turn(game.players[0])
+		assert report.endswith(f"<@1111> it is your turn! {bucks.GameHelpMsg}")
+
+		game = make_blackjack_multiplayer_with_unique_user_id(3)
+		game.deck = [1, 2, # no dealer blackjack
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+			3, 4, 5, 6, 7, 8,
+		]
+		report = game.start_game()
+		assert game.is_turn(game.players[1])
+		assert report.endswith(f"<@2222> it is your turn! {bucks.GameHelpMsg}")
+
+		game = make_blackjack_multiplayer_with_unique_user_id(4)
+		game.deck = [1, 2, # no dealer blackjack
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+			3, 4, 5, 6,
+		]
+		report = game.start_game()
+		assert game.is_turn(game.players[2])
+		assert report.endswith(f"<@3333> it is your turn! {bucks.GameHelpMsg}")
+
+
+def test_blackjack_multiplayer() -> None:
+	# this is sort of an integration test I guess
+	game = make_blackjack_multiplayer_with_unique_user_id(5)
+	p1 = game.players[0]
+	p2 = game.players[1]
+	p3 = game.players[2]
+	p4 = game.players[3]
+	p5 = game.players[4]
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x) # for deck draws
+		mp.setattr("random.choice", operator.itemgetter(0)) # for face card names
+		game.deck = [1, 2,
+			3, 4, 10, 9, 7, 10,
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.AceVal,
+			10, 4
+		]
+		report = game.start_game() # will not blackjack
+		# maybe overkill?
+		assert game.dealerUp == 1
+		assert game.dealerSum == 3
+		assert sum(p1.hand) == 7
+		assert sum(p2.hand) == 19
+		assert sum(p3.hand) == 17
+		assert sum(p4.hand) == 21
+		assert sum(p5.hand) == 12
+		assert not p1.check_bust() and not p1.perfect()
+		assert not p2.check_bust() and not p2.perfect()
+		assert not p3.check_bust() and not p3.perfect()
+		assert not p4.check_bust() and p4.perfect()
+		assert not p5.check_bust() and not p5.perfect()
+		assert not game.round_over()
+		assert report == '''\
+The dealer is showing 1, with one card face down.
+<@1111> your starting hand consists of a 3 and a 4. Your total is 7.
+<@2222> your starting hand consists of a 10 and a 9. Your total is 19.
+<@3333> your starting hand consists of a 7 and a 10. Your total is 17.
+<@4444> your starting hand consists of an Ace and a 10. you hit 21! You win! Your winnings have been added to your balance.
+<@5555> your starting hand consists of two Aces. One of them will act as a 1. Your total is 12.
+
+<@1111> it is your turn! Type !hit to deal another card to yourself, or !stay to stop at your current total.\
+'''
+		game.stay_current_player()
+		assert game.is_turn(p2)
+		assert not game.round_over()
+		game.stay_current_player()
+		assert game.is_turn(p3)
+		assert not game.round_over()
+		game.stay_current_player()
+		assert game.is_turn(p5)
+		assert not game.round_over()
+		report = game.stay_current_player()
+		assert game.round_over()
+		for p in game.players:
+			assert not game.is_turn(p)
+		assert report =='''\
+<@5555> you stayed.
+Round ended, the dealer will now play
+The dealer's cards are a 1, a 2, a 10, a 4 for a total of 17.
+<@1111>, That's closer to 21 than your sum of 7. You lose! Your losses have been deducted from your balance.
+<@2222>, you're closer to 21 with a sum of 19. You win! Your winnings have been added to your balance
+<@3333>, That ties your sum of 17. Your bet has been returned, <@3333>.
+<@5555>, That's closer to 21 than your sum of 12. You lose! Your losses have been deducted from your balance.
+
+Round ended!\
+'''
+
+
+def test_deal_current_player() -> None:
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x) # for deck draws
+		mp.setattr("random.choice", operator.itemgetter(0)) # for face card names
+		game = make_blackjack_multiplayer_with_unique_user_id(3)
+		game.deck = [1, 2, # no dealer blackjack
+			1, 5,
+			3, 4, 5, 6,
+			7, 10,
+		]
+		game.start_game()
+		report = game.deal_current_player()
+		assert game.players[0].hand == [1, 5, 7]
+		assert report.startswith("<@1111> you were dealt a 7, bringing your total to 13")
+		report = game.deal_current_player()
+		assert game.players[0].hand == [1, 5, 7, 10]
+		assert report.startswith("<@1111> you were dealt a 10, bringing your total to 23")
+		assert report.endswith("You busted. Game over.")
+		assert not game.is_turn(game.players[0])
+		assert game.is_turn(game.players[1])
+
+		game = make_blackjack_multiplayer_with_unique_user_id(2)
+		game.deck = [1, 2, # no dealer blackjack
+			bucks.BlackjackGame.AceVal, 5, # ace overflow
+			5, 6, 10
+		]
+		game.start_game()
+		assert game.players[0].hand == [bucks.BlackjackGame.AceVal, 5]
+		report = game.deal_current_player()
+		assert game.players[0].hand == [1, 5, 10]
+		assert "To avoid busting, your Ace will be treated as a 1. Your new total is 16" in report
+		assert not game.players[0].check_bust()
+		assert game.is_turn(game.players[0])
+
+
+def test_blackjack_multiplayer_dealer_blackjack() -> None:
+	game = make_blackjack_multiplayer_with_unique_user_id(3)
+	p1 = game.players[0]
+	p2 = game.players[1]
+	p3 = game.players[2]
+	with pytest.MonkeyPatch.context() as mp:
+		mp.setattr("random.randint", lambda x, _: x) # for deck draws
+		mp.setattr("random.choice", operator.itemgetter(0)) # for face card names
+		game.deck = [
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+			3, 4,
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+			7, 10,
+		]
+		report = game.start_game()
+		assert report == '''\
+The dealer blackjacked!
+<@1111> your starting hand consists of 3 and 4. You did not blackjack, you lose.
+<@2222> your starting hand consists of 11 and 10. You tied with the dealer, your bet is returned.
+<@3333> your starting hand consists of 7 and 10. You did not blackjack, you lose.
+
+Round ended.\
+'''
