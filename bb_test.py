@@ -2633,10 +2633,10 @@ def test_blackjack() -> None:
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
+		mp.setattr("random.randint", lambda x, _: x) # no dealer blackjack
 		report, game = bucks.blackjack(bb, 0)
-		report = report.lower()
 		assert game is None
-		assert "you hit 21" in report or "you tied" in report
+		assert "you hit 21"
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr(
@@ -2901,8 +2901,12 @@ def test_blackjack_starting_hand() -> None:
 	player.hand = []
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
+		game.deck = [
+			2, 3, # no dealer blackjack
+			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
+		]
 		report = game.start_game()
-		assert "you hit 21!" in report or "you tied with the dealer" in report
+		assert "you hit 21!" in report
 	assert len(player.hand) == 2
 
 	player.hand = []
