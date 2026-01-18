@@ -549,9 +549,6 @@ class BlackjackGame:
 			for i, card in enumerate(player.hand):
 				if card == BlackjackGame.AceVal:
 					player.hand[i] = 1
-					write_money(
-						player.name, -player.bet, writing=True, adding=True,
-					)
 					break
 			report += (
 				f"{sum(new_hand) + 10}. "
@@ -569,8 +566,10 @@ class BlackjackGame:
 			write_money(
 				player.name, -player.bet, writing=True, adding=True,
 			)
-			report += " You busted. Game over."
 			self.advance_turn()
+			report += f" You busted. Game over."
+			if not self.round_over():
+				report += f"\n{self.players[self.turn_idx].name.mention}, it is your turn.\n"
 		elif player.perfect():
 			append_help = False
 			write_money(
@@ -582,7 +581,7 @@ class BlackjackGame:
 			)
 			self.advance_turn()
 		if append_help:
-			report += GameHelpMsg
+			report += f" {GameHelpMsg}"
 		elif self.round_over():
 			report += self._end_round()
 		return report
@@ -602,6 +601,8 @@ class BlackjackGame:
 		self.advance_turn()
 		if self.round_over():
 			report += self._end_round()
+		else:
+			report += f"{self.players[self.turn_idx].name.mention}, it is not your turn.\n"
 		return report
 
 

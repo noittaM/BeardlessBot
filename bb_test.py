@@ -4101,7 +4101,7 @@ def test_deal_current_player() -> None:
 		assert report.startswith(
 			"<@1111> you were dealt a 10, bringing your total to 23",
 		)
-		assert report.endswith("You busted. Game over.")
+		assert report.endswith("You busted. Game over.\n<@2222>, it is your turn.\n")
 		assert not game.is_turn(game.players[0])
 		assert game.is_turn(game.players[1])
 
