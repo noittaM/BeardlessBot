@@ -454,7 +454,7 @@ class BlackjackGame:
 						append_help = False
 					elif p == self.players[self.turn_idx]:
 						self.advance_turn()
-					message += f"you hit {BlackjackGame.Goal}! {WinMsg}.\n"
+					message += f"You hit {BlackjackGame.Goal}! {WinMsg}.\n"
 					write_money(p.name, p.bet, writing=True, adding=True)
 				else:
 					if self.multiplayer:
@@ -534,7 +534,7 @@ class BlackjackGame:
 			"bringing your total to "
 		)
 		if BlackjackGame.AceVal in player.hand and player.check_bust():
-			for i, card in enumerate(player.hand):
+			for i, card in enumerate(player.hand):  # pragma: no branch
 				if card == BlackjackGame.AceVal:
 					player.hand[i] = 1
 					break
