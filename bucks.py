@@ -741,7 +741,11 @@ def balance(
 				f"{bal_target.mention}'s balance is {bonus} BeardlessBucks."
 			)
 		else:
-			report = str(bonus) if result == MoneyFlags.Registered else "Error!"
+			report = (
+				NewUserMsg.format(msg.author.mention)
+				if result == MoneyFlags.Registered
+				else "Error!"
+			)
 	return bb_embed("BeardlessBucks Balance", report)
 
 
