@@ -2633,17 +2633,18 @@ def test_blackjack() -> None:
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
-		mp.setattr("random.randint", lambda x, _: x) # no dealer blackjack
+		mp.setattr("random.randint", lambda x, _: x)  # no dealer blackjack
 		report, game = bucks.blackjack(bb, 0)
 		assert game is None
-		assert "you hit 21"
+		assert "you hit 21" in report
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr(
 			"bucks.write_money",
 			lambda *_, **__: (bucks.MoneyFlags.Registered, 0),
 		)
-		assert (bucks.NewUserMsg.format(f"<@{misc.BbId}>")
+		assert (
+			bucks.NewUserMsg.format(f"<@{misc.BbId}>")
 			in bucks.blackjack(bb, "0")[0])
 
 	bucks.reset(bb)
@@ -2679,7 +2680,7 @@ async def test_cmd_blackjack() -> None:
 
 
 @MarkAsync
-async def test_cmd_deal() -> None:
+async def test_cmd_deal1() -> None:
 	Bot.BlackjackGames = []
 	bb = MockMember(
 		MockUser("Beardless,Bot", discriminator="5757", user_id=misc.BbId),
@@ -2728,6 +2729,37 @@ async def test_cmd_deal() -> None:
 	assert "You busted. Game over" in emb.description
 	assert f"<@{misc.BbId}>" in emb.description
 	assert len(Bot.BlackjackGames) == 0
+
+
+@MarkAsync
+async def test_cmd_deal2() -> None:
+	# your boy ruff doesn't like more than 50 stmts in functions
+	Bot.BlackjackGames = []
+	bb = MockMember(
+		MockUser("Beardless,Bot", discriminator="5757", user_id=misc.BbId),
+	)
+	ch = MockChannel(guild=MockGuild())
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage("!hit"), ch, bb, MockGuild(),
+	)
+	Bot.BlackjackGames = []
+	bb = MockMember(
+		MockUser("Beardless,Bot", discriminator="5757", user_id=misc.BbId),
+	)
+	ch = MockChannel(guild=MockGuild())
+	ctx = MockContext(
+		Bot.BeardlessBot, MockMessage("!hit"), ch, bb, MockGuild(),
+	)
+	assert await Bot.cmd_deal(ctx) == 1
+	m = await latest_message(ch)
+	assert m is not None
+	assert m.embeds[0].description == bucks.CommaWarn.format(f"<@{misc.BbId}>")
+
+	bb._user.name = "Beardless Bot"
+	assert await Bot.cmd_deal(ctx) == 1
+	m = await latest_message(ch)
+	assert m is not None
+	assert m.embeds[0].description == bucks.NoGameMsg.format(f"<@{misc.BbId}>")
 
 	game = bucks.BlackjackGame(bb, multiplayer=False)
 	player = game.players[0]
@@ -2901,8 +2933,9 @@ def test_blackjack_starting_hand() -> None:
 	player.hand = []
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
+		mp.setattr("random.randint", lambda x, _: x)  # for deck draws
 		game.deck = [
-			2, 3, # no dealer blackjack
+			2, 3,  # no dealer blackjack
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
 		]
 		report = game.start_game()
@@ -3888,7 +3921,7 @@ def test_add_player_get_player_and_ready_to_start() -> None:
 	assert game.multiplayer is True
 	assert len(game.players) == 1
 	assert game.ready_to_start() is True
-	assert int(owner.bet) == 10 # please move starting bet into a variable
+	assert int(owner.bet) == 10  # please move starting bet into a variable
 
 	# test get_player with players not in game
 	p2 = MockUser()
@@ -3988,10 +4021,11 @@ def make_blackjack_multiplayer_with_unique_user_id(
 
 def test_blackjack_multiplayer_start_game_skip_perfected_players() -> None:
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, _: x) # for deck draws
+		mp.setattr("random.randint", lambda x, _: x)  # for deck draws
 
 		game = make_blackjack_multiplayer_with_unique_user_id(3)
-		game.deck = [1, 2, # no dealer blackjack
+		game.deck = [
+			1, 2,  # no dealer blackjack
 			3, 4, 5, 6, 7, 8,
 		]
 		report = game.start_game()
@@ -3999,7 +4033,8 @@ def test_blackjack_multiplayer_start_game_skip_perfected_players() -> None:
 		assert report.endswith(f"<@1111> it is your turn! {bucks.GameHelpMsg}")
 
 		game = make_blackjack_multiplayer_with_unique_user_id(3)
-		game.deck = [1, 2, # no dealer blackjack
+		game.deck = [
+			1, 2,  # no dealer blackjack
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
 			3, 4, 5, 6, 7, 8,
 		]
@@ -4008,7 +4043,8 @@ def test_blackjack_multiplayer_start_game_skip_perfected_players() -> None:
 		assert report.endswith(f"<@2222> it is your turn! {bucks.GameHelpMsg}")
 
 		game = make_blackjack_multiplayer_with_unique_user_id(4)
-		game.deck = [1, 2, # no dealer blackjack
+		game.deck = [
+			1, 2,  # no dealer blackjack
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
 			3, 4, 5, 6,
@@ -4025,15 +4061,19 @@ def test_blackjack_multiplayer() -> None:
 	p3 = game.players[2]
 	p5 = game.players[4]
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, _: x) # for deck draws
-		mp.setattr("random.choice", operator.itemgetter(0)) # for facecard names
-		game.deck = [1, 2,
+		mp.setattr("random.randint", lambda x, _: x)  # for deck draws
+		mp.setattr(
+			"random.choice",
+			operator.itemgetter(0),
+		)  # for facecard names
+		game.deck = [
+			1, 2,  # no dealer blackjack
 			3, 4, 10, 9, 7, 10,
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.AceVal,
 			10, 4,
 		]
-		report = game.start_game() # will not blackjack
+		report = game.start_game()  # will not blackjack
 		# maybe overkill?
 		assert game.dealerUp == 1
 		assert game.dealerSum == 3
@@ -4064,7 +4104,7 @@ or !stay to stop at your current total.\
 		assert game.round_over()
 		for p in game.players:
 			assert not game.is_turn(p)
-		assert report =="""\
+		assert report == """\
 <@5555> you stayed.
 Round ended, the dealer will now play
 The dealer's cards are a 1, a 2, a 10, a 4 for a total of 17.
@@ -4082,10 +4122,14 @@ Round ended!\
 
 def test_deal_current_player() -> None:
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, _: x) # for deck draws
-		mp.setattr("random.choice", operator.itemgetter(0)) # for facecard names
+		mp.setattr("random.randint", lambda x, _: x)  # for deck draws
+		mp.setattr(
+			"random.choice",
+			operator.itemgetter(0),
+		)  # for facecard names
 		game = make_blackjack_multiplayer_with_unique_user_id(3)
-		game.deck = [1, 2, # no dealer blackjack
+		game.deck = [
+			1, 2,  # no dealer blackjack
 			1, 5,
 			3, 4, 5, 6,
 			7, 10,
@@ -4101,21 +4145,26 @@ def test_deal_current_player() -> None:
 		assert report.startswith(
 			"<@1111> you were dealt a 10, bringing your total to 23",
 		)
-		assert report.endswith("You busted. Game over.\n<@2222>, it is your turn.\n")
+		assert report.endswith(
+			"You busted. Game over.\n<@2222>, it is your turn.\n",
+		)
 		assert not game.is_turn(game.players[0])
 		assert game.is_turn(game.players[1])
 
 		game = make_blackjack_multiplayer_with_unique_user_id(2)
-		game.deck = [1, 2, # no dealer blackjack
-			bucks.BlackjackGame.AceVal, 5, # ace overflow
+		game.deck = [
+			1, 2,  # no dealer blackjack
+			bucks.BlackjackGame.AceVal, 5,  # ace overflow
 			5, 6, 10,
 		]
 		game.start_game()
 		assert game.players[0].hand == [bucks.BlackjackGame.AceVal, 5]
 		report = game.deal_current_player()
 		assert game.players[0].hand == [1, 5, 10]
-		assert ("To avoid busting, your Ace will be treated as a 1. "
-			"Your new total is 16") in report
+		assert (
+			"To avoid busting, your Ace will be treated as a 1. "
+			"Your new total is 16"
+		) in report
 		assert not game.players[0].check_bust()
 		assert game.is_turn(game.players[0])
 
@@ -4123,8 +4172,11 @@ def test_deal_current_player() -> None:
 def test_blackjack_multiplayer_dealer_blackjack() -> None:
 	game = make_blackjack_multiplayer_with_unique_user_id(3)
 	with pytest.MonkeyPatch.context() as mp:
-		mp.setattr("random.randint", lambda x, _: x) # for deck draws
-		mp.setattr("random.choice", operator.itemgetter(0)) # for facecard names
+		mp.setattr("random.randint", lambda x, _: x)  # for deck draws
+		mp.setattr(
+			"random.choice",
+			operator.itemgetter(0),
+		)  # for facecard names
 		game.deck = [
 			bucks.BlackjackGame.AceVal, bucks.BlackjackGame.FaceVal,
 			3, 4,

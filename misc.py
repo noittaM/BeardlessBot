@@ -962,6 +962,7 @@ def get_last_numeric_char(duration: str) -> int:
 			return i
 	return len(duration)
 
+
 # TODO: merge with process_mute_target
 async def process_command_target(
 	ctx: BotContext, target: str | None, bot: commands.Bot,

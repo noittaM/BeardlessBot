@@ -360,6 +360,7 @@ async def cmd_blackjack(ctx: misc.BotContext, bet: str = "10") -> int:
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
+
 @BeardlessBot.command(name="tableleave")
 async def cmd_tableleave(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
@@ -389,6 +390,7 @@ async def cmd_tableleave(ctx: misc.BotContext) -> int:
 		report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
+
 
 # NOTE: duplicate code
 @BeardlessBot.command(name="tablenew")
@@ -512,7 +514,6 @@ async def cmd_tablejoin(
 	return 1
 
 
-
 @BeardlessBot.command(name="stay", aliases=("stand",))
 async def cmd_stay(ctx: misc.BotContext) -> int:
 	if misc.ctx_created_thread(ctx):
@@ -615,7 +616,7 @@ async def cmd_reset(ctx: misc.BotContext) -> int:
 		if game is None:
 			report = bucks.reset(ctx.author)
 		elif game.multiplayer and not game.started:
-			player.bet = 10 # TODO: move the default bet to a variable
+			player.bet = 10  # TODO: move the default bet to a variable
 			report = bucks.reset(ctx.author)
 			report += " Your bet has also been reset to 10."
 		else:
