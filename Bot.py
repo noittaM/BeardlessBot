@@ -373,7 +373,7 @@ async def cmd_tableleave(ctx: misc.BotContext) -> int:
 				f"{ctx.author.mention}\n"
 			)
 		elif game.started:
-				report = "Cannot leave mid-round. Please wait for the round to end."
+			report = "Cannot leave mid-round. Please wait for the round to end."
 		elif len(game.players) == 1:
 			BlackjackGames.remove(game)
 			report = "Game disbanded.\n"
@@ -422,16 +422,22 @@ async def cmd_tablebet(ctx: misc.BotContext, bet: str = "10") -> int:
 		report = bucks.NoMultiplayerGameMsg.format(ctx.author.mention)
 		if result := bucks.player_in_game(BlackjackGames, ctx.author):
 			game, player = result
-			if game.multiplayer and not game.started:
-				can_bet, report = bucks.can_make_bet(ctx.author, bet)
-				if can_bet:
-					report, bet_number = bucks.make_bet(ctx.author, game, bet)
-					report = (
-						"Your current bet is "
-						f"{bet_number}\n{ctx.author.mention}"
-					)
-					player.bet = bet_number
-				assert report is not None
+			if game.multiplayer:
+				if game.started:
+					report = "Cannot change bet mid-round."
+				else:
+					can_bet, report = bucks.can_make_bet(ctx.author, bet)
+					if can_bet:
+						report, bet_number = bucks.make_bet(
+							ctx.author,
+							game, bet,
+						)
+						report = (
+							"Your current bet is "
+							f"{bet_number}\n{ctx.author.mention}"
+						)
+						player.bet = bet_number
+					assert report is not None
 	await ctx.send(embed=misc.bb_embed("Beardless Bot Blackjack", report))
 	return 1
 
@@ -504,9 +510,9 @@ async def cmd_tablejoin(
 					report = f"Joined {join_target.mention}'s blackjack game."
 				else:
 					report = (
-							f"Cannot join {join_target.mention}'s "
-							"blackjack game mid-round. "
-							"Please wait for the round to end."
+						f"Cannot join {join_target.mention}'s "
+						"blackjack game mid-round. "
+						"Please wait for the round to end."
 					)
 			else:
 				report = (
