@@ -372,6 +372,8 @@ async def cmd_tableleave(ctx: misc.BotContext) -> int:
 				"You can't exit a singlelpayer Blackjack Game"
 				f"{ctx.author.mention}\n"
 			)
+		elif game.started:
+				report = "Cannot leave mid-round. Please wait for the round to end."
 		elif len(game.players) == 1:
 			BlackjackGames.remove(game)
 			report = "Game disbanded.\n"
@@ -497,8 +499,15 @@ async def cmd_tablejoin(
 		elif result := bucks.player_in_game(BlackjackGames, join_target):
 			game, _ = result
 			if game.multiplayer:
-				game.add_player(ctx.author)
-				report = f"Joined {join_target.mention}'s blackjack game."
+				if game.started:
+					game.add_player(ctx.author)
+					report = f"Joined {join_target.mention}'s blackjack game."
+				else:
+					report = (
+							f"Cannot join {join_target.mention}'s "
+							"blackjack game mid-round. "
+							"Please wait for the round to end."
+					)
 			else:
 				report = (
 					f"Can't join {join_target.mention}'s "
