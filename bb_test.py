@@ -2693,6 +2693,7 @@ async def test_cmd_blackjack() -> None:
 
 	with pytest.MonkeyPatch.context() as mp:
 		mp.setattr("bucks.BlackjackPlayer.perfect", lambda _: True)
+		mp.setattr("random.randint", lambda x, _: x)  # no dealer blackjack
 		Bot.BlackjackGames = []
 		assert await Bot.cmd_blackjack(ctx, bet="all") == 1
 		m = await latest_message(ctx)
