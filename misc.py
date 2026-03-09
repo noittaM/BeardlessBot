@@ -404,7 +404,7 @@ def get_frog_list() -> list[str]:
 		j = loads(
 			soup.find_all("script")[-2].text.replace("\\", "\\\\"),
 		)["payload"]
-	return [i["name"] for i in j["tree"]["items"]]
+	return [i["name"] for i in j["codeViewTreeRoute"]["tree"]["items"]]
 
 
 FrogList = get_frog_list()

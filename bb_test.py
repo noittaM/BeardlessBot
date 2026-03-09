@@ -3260,8 +3260,8 @@ def test_get_frog_list_standard_layout(httpx_mock: HTTPXMock) -> None:
 	httpx_mock.add_response(
 		url="https://github.com/a9-i/frog/tree/main/ImgSetOpt",
 		content=(
-			b"<!DOCTYPE html><html><script>{\"payload\":{\"tree\":{\"items\":"
-			b"[{\"name\":\"0\"}]}}}</script></html>"
+			b"<!DOCTYPE html><html><script>{\"payload\":{\"codeViewTreeRoute\""
+			b":{\"tree\":{\"items\":[{\"name\":\"0\"}]}}}}</script></html>"
 		),
 	)
 
@@ -3274,8 +3274,9 @@ def test_get_frog_list_alt_layout(httpx_mock: HTTPXMock) -> None:
 	httpx_mock.add_response(
 		url="https://github.com/a9-i/frog/tree/main/ImgSetOpt",
 		content=(
-			b"<!DOCTYPE html><html><script>{\"payload\":{\"tree\":{\"items\":"
-			b"[{\"name\":\"0\\\"}]}}}</script><script>{}</script></html>"
+			b"<!DOCTYPE html><html><script>{\"payload\":{\"codeViewTreeRoute\""
+			b":{\"tree\":{\"items\":[{\"name\":\"0\\\"}]}}}}"
+			b"</script><script>{}</script></html>"
 		),
 	)
 
